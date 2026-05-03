@@ -3,712 +3,250 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IoT Control — Firebase</title>
-<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+<title>Smart Home</title>
+
 <style>
-  :root {
-    --bg: #070d0f;
-    --panel: #0d1a1e;
-    --border: #1a3040;
-    --on: #00ffc8;
-    --off: #1a3040;
-    --warn: #ff6b35;
-    --text: #a8ccd4;
-    --text-dim: #3a6070;
-    --glow-on: 0 0 20px #00ffc840, 0 0 60px #00ffc815;
-    --glow-off: 0 0 10px #1a304080;
-    --radius: 12px;
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Rajdhani', sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* Scanline overlay */
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(0,255,200,0.012) 2px,
-      rgba(0,255,200,0.012) 4px
-    );
-    pointer-events: none;
-    z-index: 100;
-  }
-
-  /* Grid bg */
-  body::after {
-    content: '';
-    position: fixed; inset: 0;
-    background-image:
-      linear-gradient(rgba(0,255,200,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,255,200,0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .container {
-    position: relative; z-index: 1;
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 24px 16px 48px;
-  }
-
-  /* ── HEADER ── */
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 32px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .logo {
-    display: flex; align-items: center; gap: 12px;
-  }
-
-  .logo-icon {
-    width: 36px; height: 36px;
-    border: 2px solid var(--on);
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 18px;
-    box-shadow: var(--glow-on);
-    animation: pulse-border 2s ease-in-out infinite;
-  }
-
-  @keyframes pulse-border {
-    0%, 100% { box-shadow: var(--glow-on); }
-    50% { box-shadow: 0 0 30px #00ffc860, 0 0 80px #00ffc820; }
-  }
-
-  .logo-text {
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: 3px;
-    color: #fff;
-  }
-
-  .logo-text span { color: var(--on); }
-
-  .connection-status {
-    display: flex; align-items: center; gap: 8px;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 11px;
-    color: var(--text-dim);
-    background: var(--panel);
-    padding: 6px 14px;
-    border-radius: 20px;
-    border: 1px solid var(--border);
-  }
-
-  .conn-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: var(--on);
-    animation: blink 1.5s ease-in-out infinite;
-  }
-
-  .conn-dot.offline { background: var(--warn); animation: none; }
-
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.2; }
-  }
-
-  /* ── STATS ROW ── */
-  .stats {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    margin-bottom: 28px;
-  }
-
-  .stat-card {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px 16px;
-    text-align: center;
-  }
-
-  .stat-val {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 28px;
-    color: #fff;
-    line-height: 1;
-  }
-
-  .stat-val.on-color { color: var(--on); }
-  .stat-val.warn-color { color: var(--warn); }
-
-  .stat-label {
-    font-size: 11px;
-    letter-spacing: 2px;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    margin-top: 4px;
-  }
-
-  /* ── FIREBASE CONFIG ── */
-  .config-banner {
-    background: linear-gradient(135deg, #0d1a1e, #0a1820);
-    border: 1px solid #00ffc830;
-    border-radius: var(--radius);
-    padding: 20px 24px;
-    margin-bottom: 28px;
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    flex-wrap: wrap;
-  }
-
-  .config-banner .icon { font-size: 28px; flex-shrink: 0; }
-
-  .config-body { flex: 1; min-width: 200px; }
-
-  .config-body h3 {
-    font-size: 14px;
-    letter-spacing: 2px;
-    color: var(--on);
-    text-transform: uppercase;
-    margin-bottom: 6px;
-  }
-
-  .config-body p {
-    font-size: 13px;
-    color: var(--text-dim);
-    line-height: 1.6;
-  }
-
-  .config-input-row {
-    display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;
-  }
-
-  .cfg-input {
-    background: #05090b;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text);
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 12px;
-    padding: 7px 12px;
-    outline: none;
-    width: 240px;
-    transition: border-color .2s;
-  }
-
-  .cfg-input:focus { border-color: var(--on); }
-  .cfg-input::placeholder { color: var(--text-dim); }
-
-  .btn-connect {
-    background: var(--on);
-    color: #000;
-    border: none;
-    border-radius: 6px;
-    padding: 7px 18px;
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    cursor: pointer;
-    transition: opacity .2s, transform .1s;
-  }
-
-  .btn-connect:hover { opacity: .85; transform: translateY(-1px); }
-  .btn-connect:active { transform: translateY(0); }
-
-  /* ── SWITCHES GRID ── */
-  .section-title {
-    font-size: 11px;
-    letter-spacing: 3px;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    margin-bottom: 14px;
-  }
-
-  .switches-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-    gap: 16px;
-    margin-bottom: 32px;
-  }
-
-  .switch-card {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 20px;
-    cursor: pointer;
-    transition: border-color .25s, transform .15s, box-shadow .25s;
-    position: relative;
-    overflow: hidden;
-    user-select: none;
-  }
-
-  .switch-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: var(--off);
-    transition: background .3s;
-  }
-
-  .switch-card.on {
-    border-color: #00ffc840;
-    box-shadow: var(--glow-on);
-  }
-
-  .switch-card.on::before { background: var(--on); }
-
-  .switch-card:hover { transform: translateY(-2px); }
-  .switch-card:active { transform: scale(0.98); }
-
-  /* Card header */
-  .card-top {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    margin-bottom: 16px;
-  }
-
-  .device-icon {
-    width: 42px; height: 42px;
-    border-radius: 10px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 20px;
-    transition: border-color .3s, box-shadow .3s;
-  }
-
-  .switch-card.on .device-icon {
-    border-color: #00ffc850;
-    box-shadow: 0 0 12px #00ffc830;
-  }
-
-  /* Toggle switch */
-  .toggle {
-    position: relative;
-    width: 44px; height: 24px;
-    flex-shrink: 0;
-  }
-
-  .toggle input { display: none; }
-
-  .toggle-track {
-    position: absolute; inset: 0;
-    border-radius: 12px;
-    background: var(--off);
-    border: 1px solid #2a4050;
-    transition: background .3s, border-color .3s;
-  }
-
-  .switch-card.on .toggle-track {
-    background: #00ffc820;
-    border-color: var(--on);
-  }
-
-  .toggle-thumb {
-    position: absolute;
-    top: 3px; left: 3px;
-    width: 16px; height: 16px;
-    border-radius: 50%;
-    background: #3a5060;
-    transition: transform .3s cubic-bezier(.34,1.56,.64,1), background .3s;
-    box-shadow: 0 1px 3px rgba(0,0,0,.5);
-  }
-
-  .switch-card.on .toggle-thumb {
-    transform: translateX(20px);
-    background: var(--on);
-    box-shadow: 0 0 8px var(--on);
-  }
-
-  /* Card body */
-  .device-name {
-    font-size: 16px;
-    font-weight: 700;
-    color: #fff;
-    letter-spacing: 1px;
-    margin-bottom: 2px;
-  }
-
-  .device-location {
-    font-size: 11px;
-    letter-spacing: 1.5px;
-    color: var(--text-dim);
-    text-transform: uppercase;
-  }
-
-  .card-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: 14px;
-    padding-top: 14px;
-    border-top: 1px solid var(--border);
-  }
-
-  .status-badge {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 1px;
-    padding: 3px 8px;
-    border-radius: 4px;
-    background: #1a3040;
-    color: var(--text-dim);
-    transition: background .3s, color .3s;
-  }
-
-  .switch-card.on .status-badge {
-    background: #00ffc815;
-    color: var(--on);
-  }
-
-  .last-update {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 10px;
-    color: var(--text-dim);
-  }
-
-  /* Ripple */
-  .ripple {
-    position: absolute;
-    border-radius: 50%;
-    background: rgba(0,255,200,0.15);
-    transform: scale(0);
-    animation: ripple-anim .5s ease-out forwards;
-    pointer-events: none;
-  }
-
-  @keyframes ripple-anim {
-    to { transform: scale(4); opacity: 0; }
-  }
-
-  /* ── LOG ── */
-  .log-panel {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-  }
-
-  .log-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 18px;
-    border-bottom: 1px solid var(--border);
-    background: #0a1518;
-  }
-
-  .log-header span {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 12px;
-    color: var(--on);
-    letter-spacing: 2px;
-  }
-
-  .btn-clear {
-    background: none; border: 1px solid var(--border);
-    color: var(--text-dim); border-radius: 4px;
-    padding: 3px 10px; font-size: 11px; cursor: pointer;
-    font-family: 'Rajdhani', sans-serif; letter-spacing: 1px;
-    transition: border-color .2s, color .2s;
-  }
-
-  .btn-clear:hover { border-color: var(--warn); color: var(--warn); }
-
-  .log-body {
-    height: 180px;
-    overflow-y: auto;
-    padding: 12px 18px;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 12px;
-    line-height: 1.8;
-  }
-
-  .log-body::-webkit-scrollbar { width: 4px; }
-  .log-body::-webkit-scrollbar-track { background: transparent; }
-  .log-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-  .log-entry { color: var(--text-dim); }
-  .log-entry .ts { color: #2a5060; margin-right: 8px; }
-  .log-entry .action-on { color: var(--on); }
-  .log-entry .action-off { color: var(--text-dim); }
-  .log-entry .action-sys { color: var(--warn); }
-
-  /* ── MODAL (code view) ── */
-  .modal-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,.85);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 200;
-    opacity: 0; pointer-events: none;
-    transition: opacity .25s;
-  }
-
-  .modal-overlay.open { opacity: 1; pointer-events: all; }
-
-  .modal {
-    background: #0a1518;
-    border: 1px solid var(--on);
-    border-radius: 14px;
-    width: min(700px, 95vw);
-    max-height: 85vh;
-    overflow: hidden;
-    display: flex; flex-direction: column;
-    box-shadow: 0 0 60px #00ffc820;
-  }
-
-  .modal-head {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 20px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .modal-head h3 {
-    font-size: 13px; letter-spacing: 2px; color: var(--on);
-    text-transform: uppercase;
-  }
-
-  .btn-close {
-    background: none; border: none; color: var(--text-dim);
-    font-size: 20px; cursor: pointer; line-height: 1;
-    transition: color .2s;
-  }
-  .btn-close:hover { color: var(--warn); }
-
-  .modal-body { overflow-y: auto; padding: 20px; }
-
-  pre {
-    background: #05090b;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 12px;
-    line-height: 1.7;
-    color: #a8ccd4;
-    overflow-x: auto;
-    white-space: pre;
-  }
-
-  .kw { color: #00ffc8; }
-  .str { color: #ffc87a; }
-  .cm { color: #3a6070; font-style: italic; }
-  .fn { color: #7ec8e3; }
-  .var { color: #e0a0ff; }
-
-  .btn-copy {
-    display: block; width: 100%; margin-top: 12px;
-    background: #00ffc815; border: 1px solid #00ffc840;
-    color: var(--on); border-radius: 6px;
-    padding: 9px; font-family: 'Rajdhani', sans-serif;
-    font-size: 13px; font-weight: 700; letter-spacing: 2px;
-    cursor: pointer; transition: background .2s;
-    text-transform: uppercase;
-  }
-  .btn-copy:hover { background: #00ffc825; }
-
-  /* bottom bar */
-  .bottom-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: 24px;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-
-  .btn-show-code {
-    display: flex; align-items: center; gap: 8px;
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--text);
-    border-radius: 8px;
-    padding: 8px 18px;
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 13px; font-weight: 600; letter-spacing: 1.5px;
-    cursor: pointer; transition: border-color .2s, color .2s;
-    text-transform: uppercase;
-  }
-
-  .btn-show-code:hover { border-color: var(--on); color: var(--on); }
-
-  .all-controls {
-    display: flex; gap: 10px;
-  }
-
-  .btn-all-on, .btn-all-off {
-    border-radius: 8px;
-    padding: 8px 18px;
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 13px; font-weight: 700; letter-spacing: 1.5px;
-    cursor: pointer; border: none;
-    text-transform: uppercase;
-    transition: opacity .2s, transform .1s;
-  }
-
-  .btn-all-on { background: var(--on); color: #000; }
-  .btn-all-off { background: #1a3040; color: var(--text); border: 1px solid var(--border); }
-  .btn-all-on:hover, .btn-all-off:hover { opacity: .8; transform: translateY(-1px); }
-
-  @media (max-width: 600px) {
-    .stats { grid-template-columns: repeat(2, 1fr); }
-    header { flex-direction: column; gap: 10px; align-items: flex-start; }
-  }
+body {
+  margin: 0;
+  font-family: sans-serif;
+  background: linear-gradient(#0f2027,#203a43,#2c5364);
+  color: white;
+  transition: 0.3s;
+}
+body.light { background: #f5f5f5; color: black; }
+.tabs { display: flex; justify-content: space-around; background: #111; padding: 10px; }
+.tab { cursor: pointer; }
+.page { display: none; }
+.page.active { display: block; }
+.grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; padding: 10px; }
+.card {
+  height: 130px;
+  border-radius: 15px;
+  padding: 10px;
+  background: linear-gradient(#4facfe,#00f2fe);
+}
+.card.off { background: rgba(255,255,255,0.1); }
+body.light .card { background: white; }
+body.light .card.off { background: #ddd; }
+.schedule {
+  background: #222;
+  padding: 10px;
+  margin: 5px;
+  border-radius: 10px;
+}
+button {
+  padding: 8px;
+  margin: 5px;
+  border-radius: 8px;
+  border: none;
+}
 </style>
 </head>
+
 <body>
 
-<div class="container">
-
-  <!-- HEADER -->
-  <header>
-    <div class="logo">
-      <div class="logo-icon">⚡</div>
-      <div>
-        <div class="logo-text">IOT<span>CTRL</span></div>
-      </div>
-    </div>
-    <div class="connection-status" id="connStatus">
-      <div class="conn-dot offline" id="connDot"></div>
-      <span id="connText">CHƯA KẾT NỐI</span>
-    </div>
-  </header>
-
-  <!-- STATS -->
-  <div class="stats">
-    <div class="stat-card">
-      <div class="stat-val on-color" id="statOn">0</div>
-      <div class="stat-label">Đang bật</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-val" id="statOff">4</div>
-      <div class="stat-label">Đang tắt</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-val" id="statTotal">4</div>
-      <div class="stat-label">Tổng thiết bị</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-val warn-color" id="statUpdates">0</div>
-      <div class="stat-label">Cập nhật</div>
-    </div>
-  </div>
-
-  <!-- FIREBASE CONFIG -->
-  <div class="config-banner">
-    <div class="icon">🔥</div>
-    <div class="config-body">
-      <h3>Firebase Realtime Database</h3>
-      <p>Nhập Database URL để kết nối thật. Hoặc dùng <strong style="color:var(--on)">Demo Mode</strong> để test giao diện.</p>
-      <div class="config-input-row">
-        <input class="cfg-input" id="dbUrl" placeholder="https://YOUR-PROJECT-default-rtdb.firebaseio.com" />
-        <button class="btn-connect" onclick="connectFirebase()">KẾT NỐI</button>
-        <button class="btn-connect" style="background:#1a3040;color:var(--text);border:1px solid var(--border)" onclick="demoMode()">DEMO</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- SWITCHES -->
-  <div class="section-title">// Công tắc thiết bị</div>
-  <div class="switches-grid" id="switchesGrid"></div>
-
-  <!-- BOTTOM BAR -->
-  <div class="bottom-bar">
-    <button class="btn-show-code" onclick="document.getElementById('codeModal').classList.add('open')">
-      &lt;/&gt; Xem code Firebase
-    </button>
-    <div class="all-controls">
-      <button class="btn-all-off" onclick="setAll(false)">TẮT TẤT CẢ</button>
-      <button class="btn-all-on" onclick="setAll(true)">BẬT TẤT CẢ</button>
-    </div>
-  </div>
-
-  <!-- LOG -->
-  <div style="margin-top:24px">
-    <div class="log-panel">
-      <div class="log-header">
-        <span>// ACTIVITY LOG</span>
-        <button class="btn-clear" onclick="clearLog()">XÓA LOG</button>
-      </div>
-      <div class="log-body" id="logBody"></div>
-    </div>
-  </div>
+<div class="tabs">
+  <div class="tab" onclick="showPage(0)">🏠</div>
+  <div class="tab" onclick="showPage(1)">⏰</div>
+  <div class="tab" onclick="showPage(2)">⚙️</div>
 </div>
 
-<!-- CODE MODAL -->
-<div class="modal-overlay" id="codeModal">
-  <div class="modal">
-    <div class="modal-head">
-      <h3>// Firebase IoT Code</h3>
-      <button class="btn-close" onclick="document.getElementById('codeModal').classList.remove('open')">✕</button>
-    </div>
-    <div class="modal-body">
-      <p style="font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.7">
-        Dán code này vào dự án của bạn (Node.js / Browser). Mỗi thiết bị/trình duyệt kết nối Firebase sẽ nhận cập nhật theo thời gian thực.
-      </p>
-      <pre><code><span class="cm">// ─── CÀI ĐẶT ───────────────────────────────────</span>
-<span class="cm">// npm install firebase</span>
+<div class="page active" id="p0">
+  <h3>Control</h3>
+  <div id="status">ESP32: ...</div>
+  <div id="time"></div>
+  <div class="grid" id="grid"></div>
+</div>
 
-<span class="kw">import</span> { initializeApp } <span class="kw">from</span> <span class="str">"firebase/app"</span>;
-<span class="kw">import</span> { getDatabase, ref, set,
-         onValue, serverTimestamp } <span class="kw">from</span> <span class="str">"firebase/database"</span>;
+<div class="page" id="p1">
+  <h3>Scheduler</h3>
 
-<span class="cm">// ─── KHỞI TẠO ──────────────────────────────────</span>
-<span class="kw">const</span> <span class="var">app</span> = <span class="fn">initializeApp</span>({
-  apiKey:      <span class="str">"YOUR_API_KEY"</span>,
-  databaseURL: <span class="str">"https://YOUR-PROJECT-rtdb.firebaseio.com"</span>,
-  projectId:   <span class="str">"YOUR_PROJECT_ID"</span>,
-});
-<span class="kw">const</span> <span class="var">db</span> = <span class="fn">getDatabase</span>(app);
+  <select id="device">
+    <option value="den-phong-khach">Đèn</option>
+    <option value="dieu-hoa">Điều hoà</option>
+    <option value="quat-tran">Quạt</option>
+  </select>
 
-<span class="cm">// ─── CẤU TRÚC DATABASE ─────────────────────────</span>
-<span class="cm">// iot-home/</span>
-<span class="cm">//   switches/</span>
-<span class="cm">//     den-phong-khach: { state: false, ... }</span>
-<span class="cm">//     dieu-hoa:        { state: true,  ... }</span>
-<span class="cm">//     quat:            { state: false, ... }</span>
-<span class="cm">//     o-cam:           { state: true,  ... }</span>
+  <select id="action">
+    <option value="true">BẬT</option>
+    <option value="false">TẮT</option>
+  </select>
 
-<span class="cm">// ─── BẬT / TẮT THIẾT BỊ ───────────────────────</span>
-<span class="kw">async function</span> <span class="fn">toggleDevice</span>(deviceId, state) {
-  <span class="kw">const</span> <span class="var">deviceRef</span> = <span class="fn">ref</span>(db, <span class="str">`iot-home/switches/<span class="kw">${</span>deviceId<span class="kw">}</span>`</span>);
-  <span class="kw">await</span> <span class="fn">set</span>(deviceRef, {
-    state:     state,          <span class="cm">// true = BẬT, false = TẮT</span>
-    updatedAt: <span class="fn">serverTimestamp</span>(),
-    updatedBy: <span class="str">"device-A"</span>,    <span class="cm">// ID thiết bị gửi lệnh</span>
+  <select id="type">
+    <option value="once">Một lần</option>
+    <option value="daily">Hàng ngày</option>
+    <option value="weekly">Hàng tuần</option>
+  </select>
+
+  <br>
+  <input type="datetime-local" id="datetime">
+  <input type="time" id="time2">
+
+  <br>
+  <button onclick="addSchedule()">➕ Thêm</button>
+
+  <div id="list"></div>
+</div>
+
+<div class="page" id="p2">
+  <h3>Settings</h3>
+
+  <button onclick="resetDevice()">Reset</button>
+  <button onclick="openAP()">Đổi WiFi</button>
+  <button onclick="syncTime()">Sync Time</button>
+  <button onclick="toggleTheme()">Light/Dark</button>
+</div>
+
+<script>
+const DEVICES = [
+  {id:'den-phong-khach',name:'Đèn'},
+  {id:'dieu-hoa',name:'Điều hoà'},
+  {id:'quat-tran',name:'Quạt'}
+];
+
+let states = {};
+DEVICES.forEach(d=>states[d.id]=false);
+
+function showPage(i){
+  document.querySelectorAll(".page").forEach((p,idx)=>{
+    p.classList.toggle("active", idx===i);
   });
 }
 
-<span class="cm">// ─── LẮNG NGHE THAY ĐỔI (REALTIME) ────────────</span>
-<span class="kw">function</span> <span class="fn">watchAllSwitches</span>() {
-  <span class="kw">const</span> <span class="var">switchRef</span> = <span class="fn">ref</span>(db, <span class="str">"iot-home/switches"</span>);
+function render(){
+  const grid = document.getElementById("grid");
+  grid.innerHTML="";
+  DEVICES.forEach(d=>{
+    const on = states[d.id];
+    const el=document.createElement("div");
+    el.className="card "+(on?"":"off");
+    el.innerHTML=d.name;
+    el.onclick=()=>toggle(d.id);
+    grid.appendChild(el);
+  });
+}
 
-  <span class="fn">onValue</span>(switchRef, (snapshot) => {
-    <span class="kw">const</span> <span class="var">data</span> = snapshot.<span class="fn">val</span>();
-    Object.<span class="fn">entries</span>(data || {}).<span class="fn">forEach</span>(([id, info]) => {
-      console.<span class="fn">log</span>(<span class="str">`<span class="kw">${</span>id<span class="kw">}</span>: <span class="kw">${</span>info.state ? <span class="str">"BẬT 🟢"</span> : <span class="str">"TẮT ⚫"</span><span class="kw">}</span>`</span>);
-      <span class="fn">updateHardware</span>(id, info.state); <span class="cm">// cập nhật GPIO/relay</span>
+function toggle(id){
+  states[id]=!states[id];
+  render();
+  firebaseSet(`iot-home/switches/${id}`,{state:states[id]});
+}
+
+let db,ref,set,onValue,push,remove;
+
+async function init(){
+  const appModule=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+  const dbModule=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+
+  const app=appModule.initializeApp({
+    apiKey:"AIzaSyC8CsWWmlrmI5GUJ0D8tQtJ5vPftSgBqr4",
+    databaseURL:"https://may-tinh-mui-ne-smart-home-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId:"may-tinh-mui-ne-smart-home"
+  });
+
+  db=dbModule.getDatabase(app);
+  ref=dbModule.ref;
+  set=dbModule.set;
+  onValue=dbModule.onValue;
+  push=dbModule.push;
+  remove=dbModule.remove;
+
+  sync();
+  loadSchedules();
+}
+
+init();
+
+function sync(){
+  onValue(ref(db,"iot-home/switches"),snap=>{
+    const data=snap.val();
+    if(!data)return;
+    Object.keys(data).forEach(id=>{
+      states[id]=data[id].state;
+    });
+    render();
+  });
+
+  onValue(ref(db,"iot-home/device/status"),snap=>{
+    document.getElementById("status").innerText=
+      snap.val()=="online"?"🟢 ONLINE":"🔴 OFFLINE";
+  });
+}
+
+function firebaseSet(path,data){
+  set(ref(db,path),data);
+}
+
+function addSchedule(){
+  const device=deviceEl.value;
+  const action=actionEl.value=="true";
+  const type=typeEl.value;
+
+  const data={
+    device,
+    action,
+    type,
+    time:time2.value,
+    datetime:datetime.value
+  };
+
+  set(push(ref(db,"iot-home/schedules")),data);
+}
+
+const deviceEl=document.getElementById("device");
+const actionEl=document.getElementById("action");
+const typeEl=document.getElementById("type");
+const time2=document.getElementById("time2");
+const datetime=document.getElementById("datetime");
+
+function loadSchedules(){
+  onValue(ref(db,"iot-home/schedules"),snap=>{
+    const data=snap.val();
+    const list=document.getElementById("list");
+    list.innerHTML="";
+    if(!data)return;
+
+    Object.entries(data).forEach(([id,s])=>{
+      const div=document.createElement("div");
+      div.className="schedule";
+      div.innerHTML=`
+        ${s.device} → ${s.action?"ON":"OFF"}<br>
+        ${s.type}<br>
+        ${s.time||s.datetime}
+        <button onclick="del('${id}')">X</button>
+      `;
+      list.appendChild(div);
     });
   });
 }
 
-<span class="cm">// ─── VÍ DỤ RASPBERRY PI (GPIO) ─────────────────</span>
-<span class="cm">// const gpio = require("rpi-gpio");</span>
-<span class="cm">// function updateHardw
+function del(id){
+  remove(ref(db,"iot-home/schedules/"+id));
+}
+
+function resetDevice(){
+  firebaseSet("iot-home/system/reset",true);
+}
+
+function openAP(){
+  firebaseSet("iot-home/system/openAP",true);
+}
+
+function syncTime(){
+  firebaseSet("iot-home/system/syncTime",true);
+}
+
+setInterval(()=>{
+  document.getElementById("time").innerText=
+    new Date().toLocaleTimeString();
+},1000);
+
+function toggleTheme(){
+  document.body.classList.toggle("light");
+}
+
+render();
+</script>
+
+</body>
+</html>
