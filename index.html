@@ -1,74 +1,133 @@
-#include <WiFi.h>
-#include <Firebase_ESP_Client.h>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Home UI</title>
+<style>
+body{
+  margin:0;
+  font-family:-apple-system;
+  background:url('https://i.imgur.com/8bKQX7R.jpg') center/cover;
+  color:#fff;
+}
+body.light{background:#f5f5f5;color:#000;}
+.overlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,0.6);
+}
+body.light .overlay{background:rgba(255,255,255,0.6);}
+.top{
+  position:relative;
+  padding:15px;
+  text-align:center;
+}
+.grid{
+  position:relative;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+  padding:20px;
+}
+.card{
+  height:180px;
+  border-radius:20px;
+  backdrop-filter:blur(10px);
+  background:rgba(255,255,255,0.05);
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  align-items:center;
+  padding-bottom:20px;
+  transition:.3s;
+}
+.card.on{
+  background:linear-gradient(to top,#00ffd5,#000);
+  box-shadow:0 0 20px #00ffd5;
+}
+.bar{
+  width:30px;height:5px;
+  background:#ffd54f;
+  border-radius:5px;
+  margin-bottom:8px;
+}
+.footer{
+  position:fixed;
+  bottom:0;
+  width:100%;
+  display:flex;
+  justify-content:space-around;
+  background:rgba(0,0,0,0.6);
+  padding:10px;
+}
+.circle{
+  width:50px;height:50px;
+  border-radius:50%;
+  background:rgba(255,255,255,0.1);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin-bottom:5px;
+}
+</style>
+</head>
 
-#define WIFI_SSID "YOUR_WIFI"
-#define WIFI_PASSWORD "YOUR_PASS"
+<body>
+<div class="overlay"></div>
 
-#define API_KEY "AIzaSyC8CsWWmlrmI5GUJ0D8tQtJ5vPftSgBqr4"
-#define DATABASE_URL "https://may-tinh-mui-ne-smart-home-default-rtdb.asia-southeast1.firebasedatabase.app"
+<div class="top">
+  <div id="status">🔴 OFFLINE</div>
+  <div id="time"></div>
+</div>
 
-FirebaseData fbdo;
-FirebaseAuth auth;
-FirebaseConfig config;
+<div class="grid" id="grid"></div>
 
-#define RELAY1 5
-#define RELAY2 18
-#define RELAY3 19
+<div class="footer">
+  <div onclick="allOn()"><div class="circle">ON</div>All</div>
+  <div onclick="toggleTheme()"><div class="circle">🌙</div>Theme</div>
+  <div onclick="allOff()"><div class="circle">OFF</div>All</div>
+</div>
 
-void setup(){
-  Serial.begin(115200);
+<script>
+const DEVICES=[
+{id:"den1",name:"Đèn 1"},
+{id:"den2",name:"Đèn 2"},
+{id:"den3",name:"Đèn 3"},
+];
 
-  pinMode(RELAY1, OUTPUT);
-  pinMode(RELAY2, OUTPUT);
-  pinMode(RELAY3, OUTPUT);
+let states={};
+DEVICES.forEach(d=>states[d.id]=false);
 
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-
-  Serial.println("WiFi OK");
-
-  config.api_key = API_KEY;
-  config.database_url = DATABASE_URL;
-
-  Firebase.begin(&config, &auth);
-  Firebase.reconnectWiFi(true);
-
-  Firebase.RTDB.setString(&fbdo,"iot-home/device/status","online");
-
-  Firebase.RTDB.beginStream(&fbdo,"iot-home/switches");
-  Firebase.RTDB.setStreamCallback(&fbdo, streamCallback, streamTimeoutCallback);
+function render(){
+const g=document.getElementById("grid");
+g.innerHTML="";
+DEVICES.forEach(d=>{
+const el=document.createElement("div");
+el.className="card "+(states[d.id]?"on":"");
+el.innerHTML=`<div class="bar"></div><div>${d.name}</div>`;
+el.onclick=()=>toggle(d.id);
+g.appendChild(el);
+});
 }
 
-void loop(){
-  if(WiFi.status()!=WL_CONNECTED){
-    Firebase.RTDB.setString(&fbdo,"iot-home/device/status","offline");
-  } else {
-    Firebase.RTDB.setString(&fbdo,"iot-home/device/status","online");
-  }
+function toggle(id){
+states[id]=!states[id];
+render();
 }
 
-void streamCallback(FirebaseStream data){
-  String path=data.dataPath();
-  bool state=data.boolData();
+function allOn(){DEVICES.forEach(d=>states[d.id]=true);render();}
+function allOff(){DEVICES.forEach(d=>states[d.id]=false);render();}
 
-  Serial.println(path + " = " + state);
+setInterval(()=>{
+document.getElementById("time").innerText=new Date().toLocaleTimeString();
+},1000);
 
-  if(path.indexOf("den1")>=0){
-    digitalWrite(RELAY1, state);
-  }
-  if(path.indexOf("den2")>=0){
-    digitalWrite(RELAY2, state);
-  }
-  if(path.indexOf("den3")>=0){
-    digitalWrite(RELAY3, state);
-  }
+function toggleTheme(){
+document.body.classList.toggle("light");
 }
 
-void streamTimeoutCallback(bool timeout){
-  if(timeout){
-    Serial.println("Stream timeout");
-  }
-}
+render();
+</script>
+
+</body>
+</html>
