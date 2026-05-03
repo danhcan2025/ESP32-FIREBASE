@@ -1,252 +1,74 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Smart Home</title>
+#include <WiFi.h>
+#include <Firebase_ESP_Client.h>
 
-<style>
-body {
-  margin: 0;
-  font-family: sans-serif;
-  background: linear-gradient(#0f2027,#203a43,#2c5364);
-  color: white;
-  transition: 0.3s;
-}
-body.light { background: #f5f5f5; color: black; }
-.tabs { display: flex; justify-content: space-around; background: #111; padding: 10px; }
-.tab { cursor: pointer; }
-.page { display: none; }
-.page.active { display: block; }
-.grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; padding: 10px; }
-.card {
-  height: 130px;
-  border-radius: 15px;
-  padding: 10px;
-  background: linear-gradient(#4facfe,#00f2fe);
-}
-.card.off { background: rgba(255,255,255,0.1); }
-body.light .card { background: white; }
-body.light .card.off { background: #ddd; }
-.schedule {
-  background: #222;
-  padding: 10px;
-  margin: 5px;
-  border-radius: 10px;
-}
-button {
-  padding: 8px;
-  margin: 5px;
-  border-radius: 8px;
-  border: none;
-}
-</style>
-</head>
+#define WIFI_SSID "YOUR_WIFI"
+#define WIFI_PASSWORD "YOUR_PASS"
 
-<body>
+#define API_KEY "AIzaSyC8CsWWmlrmI5GUJ0D8tQtJ5vPftSgBqr4"
+#define DATABASE_URL "https://may-tinh-mui-ne-smart-home-default-rtdb.asia-southeast1.firebasedatabase.app"
 
-<div class="tabs">
-  <div class="tab" onclick="showPage(0)">🏠</div>
-  <div class="tab" onclick="showPage(1)">⏰</div>
-  <div class="tab" onclick="showPage(2)">⚙️</div>
-</div>
+FirebaseData fbdo;
+FirebaseAuth auth;
+FirebaseConfig config;
 
-<div class="page active" id="p0">
-  <h3>Control</h3>
-  <div id="status">ESP32: ...</div>
-  <div id="time"></div>
-  <div class="grid" id="grid"></div>
-</div>
+#define RELAY1 5
+#define RELAY2 18
+#define RELAY3 19
 
-<div class="page" id="p1">
-  <h3>Scheduler</h3>
+void setup(){
+  Serial.begin(115200);
 
-  <select id="device">
-    <option value="den-phong-khach">Đèn</option>
-    <option value="dieu-hoa">Điều hoà</option>
-    <option value="quat-tran">Quạt</option>
-  </select>
+  pinMode(RELAY1, OUTPUT);
+  pinMode(RELAY2, OUTPUT);
+  pinMode(RELAY3, OUTPUT);
 
-  <select id="action">
-    <option value="true">BẬT</option>
-    <option value="false">TẮT</option>
-  </select>
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
 
-  <select id="type">
-    <option value="once">Một lần</option>
-    <option value="daily">Hàng ngày</option>
-    <option value="weekly">Hàng tuần</option>
-  </select>
+  Serial.println("WiFi OK");
 
-  <br>
-  <input type="datetime-local" id="datetime">
-  <input type="time" id="time2">
+  config.api_key = API_KEY;
+  config.database_url = DATABASE_URL;
 
-  <br>
-  <button onclick="addSchedule()">➕ Thêm</button>
+  Firebase.begin(&config, &auth);
+  Firebase.reconnectWiFi(true);
 
-  <div id="list"></div>
-</div>
+  Firebase.RTDB.setString(&fbdo,"iot-home/device/status","online");
 
-<div class="page" id="p2">
-  <h3>Settings</h3>
-
-  <button onclick="resetDevice()">Reset</button>
-  <button onclick="openAP()">Đổi WiFi</button>
-  <button onclick="syncTime()">Sync Time</button>
-  <button onclick="toggleTheme()">Light/Dark</button>
-</div>
-
-<script>
-const DEVICES = [
-  {id:'den-phong-khach',name:'Đèn'},
-  {id:'dieu-hoa',name:'Điều hoà'},
-  {id:'quat-tran',name:'Quạt'}
-];
-
-let states = {};
-DEVICES.forEach(d=>states[d.id]=false);
-
-function showPage(i){
-  document.querySelectorAll(".page").forEach((p,idx)=>{
-    p.classList.toggle("active", idx===i);
-  });
+  Firebase.RTDB.beginStream(&fbdo,"iot-home/switches");
+  Firebase.RTDB.setStreamCallback(&fbdo, streamCallback, streamTimeoutCallback);
 }
 
-function render(){
-  const grid = document.getElementById("grid");
-  grid.innerHTML="";
-  DEVICES.forEach(d=>{
-    const on = states[d.id];
-    const el=document.createElement("div");
-    el.className="card "+(on?"":"off");
-    el.innerHTML=d.name;
-    el.onclick=()=>toggle(d.id);
-    grid.appendChild(el);
-  });
+void loop(){
+  if(WiFi.status()!=WL_CONNECTED){
+    Firebase.RTDB.setString(&fbdo,"iot-home/device/status","offline");
+  } else {
+    Firebase.RTDB.setString(&fbdo,"iot-home/device/status","online");
+  }
 }
 
-function toggle(id){
-  states[id]=!states[id];
-  render();
-  firebaseSet(`iot-home/switches/${id}`,{state:states[id]});
+void streamCallback(FirebaseStream data){
+  String path=data.dataPath();
+  bool state=data.boolData();
+
+  Serial.println(path + " = " + state);
+
+  if(path.indexOf("den1")>=0){
+    digitalWrite(RELAY1, state);
+  }
+  if(path.indexOf("den2")>=0){
+    digitalWrite(RELAY2, state);
+  }
+  if(path.indexOf("den3")>=0){
+    digitalWrite(RELAY3, state);
+  }
 }
 
-let db,ref,set,onValue,push,remove;
-
-async function init(){
-  const appModule=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
-  const dbModule=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-
-  const app=appModule.initializeApp({
-    apiKey:"AIzaSyC8CsWWmlrmI5GUJ0D8tQtJ5vPftSgBqr4",
-    databaseURL:"https://may-tinh-mui-ne-smart-home-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId:"may-tinh-mui-ne-smart-home"
-  });
-
-  db=dbModule.getDatabase(app);
-  ref=dbModule.ref;
-  set=dbModule.set;
-  onValue=dbModule.onValue;
-  push=dbModule.push;
-  remove=dbModule.remove;
-
-  sync();
-  loadSchedules();
+void streamTimeoutCallback(bool timeout){
+  if(timeout){
+    Serial.println("Stream timeout");
+  }
 }
-
-init();
-
-function sync(){
-  onValue(ref(db,"iot-home/switches"),snap=>{
-    const data=snap.val();
-    if(!data)return;
-    Object.keys(data).forEach(id=>{
-      states[id]=data[id].state;
-    });
-    render();
-  });
-
-  onValue(ref(db,"iot-home/device/status"),snap=>{
-    document.getElementById("status").innerText=
-      snap.val()=="online"?"🟢 ONLINE":"🔴 OFFLINE";
-  });
-}
-
-function firebaseSet(path,data){
-  set(ref(db,path),data);
-}
-
-function addSchedule(){
-  const device=deviceEl.value;
-  const action=actionEl.value=="true";
-  const type=typeEl.value;
-
-  const data={
-    device,
-    action,
-    type,
-    time:time2.value,
-    datetime:datetime.value
-  };
-
-  set(push(ref(db,"iot-home/schedules")),data);
-}
-
-const deviceEl=document.getElementById("device");
-const actionEl=document.getElementById("action");
-const typeEl=document.getElementById("type");
-const time2=document.getElementById("time2");
-const datetime=document.getElementById("datetime");
-
-function loadSchedules(){
-  onValue(ref(db,"iot-home/schedules"),snap=>{
-    const data=snap.val();
-    const list=document.getElementById("list");
-    list.innerHTML="";
-    if(!data)return;
-
-    Object.entries(data).forEach(([id,s])=>{
-      const div=document.createElement("div");
-      div.className="schedule";
-      div.innerHTML=`
-        ${s.device} → ${s.action?"ON":"OFF"}<br>
-        ${s.type}<br>
-        ${s.time||s.datetime}
-        <button onclick="del('${id}')">X</button>
-      `;
-      list.appendChild(div);
-    });
-  });
-}
-
-function del(id){
-  remove(ref(db,"iot-home/schedules/"+id));
-}
-
-function resetDevice(){
-  firebaseSet("iot-home/system/reset",true);
-}
-
-function openAP(){
-  firebaseSet("iot-home/system/openAP",true);
-}
-
-function syncTime(){
-  firebaseSet("iot-home/system/syncTime",true);
-}
-
-setInterval(()=>{
-  document.getElementById("time").innerText=
-    new Date().toLocaleTimeString();
-},1000);
-
-function toggleTheme(){
-  document.body.classList.toggle("light");
-}
-
-render();
-</script>
-
-</body>
-</html>
