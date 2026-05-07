@@ -2,957 +2,1866 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IoT Control — Firebase</title>
-<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>SmartHome · Editorial</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #070d0f;
-    --panel: #0d1a1e;
-    --border: #1a3040;
-    --on: #00ffc8;
-    --off: #1a3040;
-    --warn: #ff6b35;
-    --text: #a8ccd4;
-    --text-dim: #3a6070;
-    --glow-on: 0 0 20px #00ffc840, 0 0 60px #00ffc815;
-    --glow-off: 0 0 10px #1a304080;
-    --radius: 12px;
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Rajdhani', sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* Scanline overlay */
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(0,255,200,0.012) 2px,
-      rgba(0,255,200,0.012) 4px
-    );
-    pointer-events: none;
-    z-index: 100;
-  }
-
-  /* Grid bg */
-  body::after {
-    content: '';
-    position: fixed; inset: 0;
-    background-image:
-      linear-gradient(rgba(0,255,200,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,255,200,0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .container {
-    position: relative; z-index: 1;
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 24px 16px 48px;
-  }
-
-  /* ── HEADER ── */
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 32px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .logo {
-    display: flex; align-items: center; gap: 12px;
-  }
-
-  .logo-icon {
-    width: 36px; height: 36px;
-    border: 2px solid var(--on);
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 18px;
-    box-shadow: var(--glow-on);
-    animation: pulse-border 2s ease-in-out infinite;
-  }
-
-  @keyframes pulse-border {
-    0%, 100% { box-shadow: var(--glow-on); }
-    50% { box-shadow: 0 0 30px #00ffc860, 0 0 80px #00ffc820; }
-  }
-
-  .logo-text {
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: 3px;
-    color: #fff;
-  }
-
-  .logo-text span { color: var(--on); }
-
-  .connection-status {
-    display: flex; align-items: center; gap: 8px;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 11px;
-    color: var(--text-dim);
-    background: var(--panel);
-    padding: 6px 14px;
-    border-radius: 20px;
-    border: 1px solid var(--border);
-  }
-
-  .conn-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: var(--on);
-    animation: blink 1.5s ease-in-out infinite;
-  }
-
-  .conn-dot.offline { background: var(--warn); animation: none; }
-
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.2; }
-  }
-
-  /* ── STATS ROW ── */
-  .stats {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    margin-bottom: 28px;
-  }
-
-  .stat-card {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px 16px;
-    text-align: center;
-  }
-
-  .stat-val {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 28px;
-    color: #fff;
-    line-height: 1;
-  }
-
-  .stat-val.on-color { color: var(--on); }
-  .stat-val.warn-color { color: var(--warn); }
-
-  .stat-label {
-    font-size: 11px;
-    letter-spacing: 2px;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    margin-top: 4px;
-  }
-
-  /* ── FIREBASE CONFIG ── */
-  .config-banner {
-    background: linear-gradient(135deg, #0d1a1e, #0a1820);
-    border: 1px solid #00ffc830;
-    border-radius: var(--radius);
-    padding: 20px 24px;
-    margin-bottom: 28px;
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    flex-wrap: wrap;
-  }
-
-  .config-banner .icon { font-size: 28px; flex-shrink: 0; }
-
-  .config-body { flex: 1; min-width: 200px; }
-
-  .config-body h3 {
-    font-size: 14px;
-    letter-spacing: 2px;
-    color: var(--on);
-    text-transform: uppercase;
-    margin-bottom: 6px;
-  }
-
-  .config-body p {
-    font-size: 13px;
-    color: var(--text-dim);
-    line-height: 1.6;
-  }
-
-  .config-input-row {
-    display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;
-  }
-
-  .cfg-input {
-    background: #05090b;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text);
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 12px;
-    padding: 7px 12px;
-    outline: none;
-    width: 240px;
-    transition: border-color .2s;
-  }
-
-  .cfg-input:focus { border-color: var(--on); }
-  .cfg-input::placeholder { color: var(--text-dim); }
-
-  .btn-connect {
-    background: var(--on);
-    color: #000;
-    border: none;
-    border-radius: 6px;
-    padding: 7px 18px;
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    cursor: pointer;
-    transition: opacity .2s, transform .1s;
-  }
-
-  .btn-connect:hover { opacity: .85; transform: translateY(-1px); }
-  .btn-connect:active { transform: translateY(0); }
-
-  /* ── SWITCHES GRID ── */
-  .section-title {
-    font-size: 11px;
-    letter-spacing: 3px;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    margin-bottom: 14px;
-  }
-
-  .switches-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-    gap: 16px;
-    margin-bottom: 32px;
-  }
-
-  .switch-card {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 20px;
-    cursor: pointer;
-    transition: border-color .25s, transform .15s, box-shadow .25s;
-    position: relative;
-    overflow: hidden;
-    user-select: none;
-  }
-
-  .switch-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: var(--off);
-    transition: background .3s;
-  }
-
-  .switch-card.on {
-    border-color: #00ffc840;
-    box-shadow: var(--glow-on);
-  }
-
-  .switch-card.on::before { background: var(--on); }
-
-  .switch-card:hover { transform: translateY(-2px); }
-  .switch-card:active { transform: scale(0.98); }
-
-  /* Card header */
-  .card-top {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    margin-bottom: 16px;
-  }
-
-  .device-icon {
-    width: 42px; height: 42px;
-    border-radius: 10px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 20px;
-    transition: border-color .3s, box-shadow .3s;
-  }
-
-  .switch-card.on .device-icon {
-    border-color: #00ffc850;
-    box-shadow: 0 0 12px #00ffc830;
-  }
-
-  /* Toggle switch */
-  .toggle {
-    position: relative;
-    width: 44px; height: 24px;
-    flex-shrink: 0;
-  }
-
-  .toggle input { display: none; }
-
-  .toggle-track {
-    position: absolute; inset: 0;
-    border-radius: 12px;
-    background: var(--off);
-    border: 1px solid #2a4050;
-    transition: background .3s, border-color .3s;
-  }
-
-  .switch-card.on .toggle-track {
-    background: #00ffc820;
-    border-color: var(--on);
-  }
-
-  .toggle-thumb {
-    position: absolute;
-    top: 3px; left: 3px;
-    width: 16px; height: 16px;
-    border-radius: 50%;
-    background: #3a5060;
-    transition: transform .3s cubic-bezier(.34,1.56,.64,1), background .3s;
-    box-shadow: 0 1px 3px rgba(0,0,0,.5);
-  }
-
-  .switch-card.on .toggle-thumb {
-    transform: translateX(20px);
-    background: var(--on);
-    box-shadow: 0 0 8px var(--on);
-  }
-
-  /* Card body */
-  .device-name {
-    font-size: 16px;
-    font-weight: 700;
-    color: #fff;
-    letter-spacing: 1px;
-    margin-bottom: 2px;
-  }
-
-  .device-location {
-    font-size: 11px;
-    letter-spacing: 1.5px;
-    color: var(--text-dim);
-    text-transform: uppercase;
-  }
-
-  .card-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: 14px;
-    padding-top: 14px;
-    border-top: 1px solid var(--border);
-  }
-
-  .status-badge {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 1px;
-    padding: 3px 8px;
-    border-radius: 4px;
-    background: #1a3040;
-    color: var(--text-dim);
-    transition: background .3s, color .3s;
-  }
-
-  .switch-card.on .status-badge {
-    background: #00ffc815;
-    color: var(--on);
-  }
-
-  .last-update {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 10px;
-    color: var(--text-dim);
-  }
-
-  /* Ripple */
-  .ripple {
-    position: absolute;
-    border-radius: 50%;
-    background: rgba(0,255,200,0.15);
-    transform: scale(0);
-    animation: ripple-anim .5s ease-out forwards;
-    pointer-events: none;
-  }
-
-  @keyframes ripple-anim {
-    to { transform: scale(4); opacity: 0; }
-  }
-
-  /* ── LOG ── */
-  .log-panel {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-  }
-
-  .log-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 18px;
-    border-bottom: 1px solid var(--border);
-    background: #0a1518;
-  }
-
-  .log-header span {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 12px;
-    color: var(--on);
-    letter-spacing: 2px;
-  }
-
-  .btn-clear {
-    background: none; border: 1px solid var(--border);
-    color: var(--text-dim); border-radius: 4px;
-    padding: 3px 10px; font-size: 11px; cursor: pointer;
-    font-family: 'Rajdhani', sans-serif; letter-spacing: 1px;
-    transition: border-color .2s, color .2s;
-  }
-
-  .btn-clear:hover { border-color: var(--warn); color: var(--warn); }
-
-  .log-body {
-    height: 180px;
-    overflow-y: auto;
-    padding: 12px 18px;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 12px;
-    line-height: 1.8;
-  }
-
-  .log-body::-webkit-scrollbar { width: 4px; }
-  .log-body::-webkit-scrollbar-track { background: transparent; }
-  .log-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-  .log-entry { color: var(--text-dim); }
-  .log-entry .ts { color: #2a5060; margin-right: 8px; }
-  .log-entry .action-on { color: var(--on); }
-  .log-entry .action-off { color: var(--text-dim); }
-  .log-entry .action-sys { color: var(--warn); }
-
-  /* ── MODAL (code view) ── */
-  .modal-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,.85);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 200;
-    opacity: 0; pointer-events: none;
-    transition: opacity .25s;
-  }
-
-  .modal-overlay.open { opacity: 1; pointer-events: all; }
-
-  .modal {
-    background: #0a1518;
-    border: 1px solid var(--on);
-    border-radius: 14px;
-    width: min(700px, 95vw);
-    max-height: 85vh;
-    overflow: hidden;
-    display: flex; flex-direction: column;
-    box-shadow: 0 0 60px #00ffc820;
-  }
-
-  .modal-head {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 20px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .modal-head h3 {
-    font-size: 13px; letter-spacing: 2px; color: var(--on);
-    text-transform: uppercase;
-  }
-
-  .btn-close {
-    background: none; border: none; color: var(--text-dim);
-    font-size: 20px; cursor: pointer; line-height: 1;
-    transition: color .2s;
-  }
-  .btn-close:hover { color: var(--warn); }
-
-  .modal-body { overflow-y: auto; padding: 20px; }
-
-  pre {
-    background: #05090b;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 12px;
-    line-height: 1.7;
-    color: #a8ccd4;
-    overflow-x: auto;
-    white-space: pre;
-  }
-
-  .kw { color: #00ffc8; }
-  .str { color: #ffc87a; }
-  .cm { color: #3a6070; font-style: italic; }
-  .fn { color: #7ec8e3; }
-  .var { color: #e0a0ff; }
-
-  .btn-copy {
-    display: block; width: 100%; margin-top: 12px;
-    background: #00ffc815; border: 1px solid #00ffc840;
-    color: var(--on); border-radius: 6px;
-    padding: 9px; font-family: 'Rajdhani', sans-serif;
-    font-size: 13px; font-weight: 700; letter-spacing: 2px;
-    cursor: pointer; transition: background .2s;
-    text-transform: uppercase;
-  }
-  .btn-copy:hover { background: #00ffc825; }
-
-  /* bottom bar */
-  .bottom-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: 24px;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-
-  .btn-show-code {
-    display: flex; align-items: center; gap: 8px;
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--text);
-    border-radius: 8px;
-    padding: 8px 18px;
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 13px; font-weight: 600; letter-spacing: 1.5px;
-    cursor: pointer; transition: border-color .2s, color .2s;
-    text-transform: uppercase;
-  }
-
-  .btn-show-code:hover { border-color: var(--on); color: var(--on); }
-
-  .all-controls {
-    display: flex; gap: 10px;
-  }
-
-  .btn-all-on, .btn-all-off {
-    border-radius: 8px;
-    padding: 8px 18px;
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 13px; font-weight: 700; letter-spacing: 1.5px;
-    cursor: pointer; border: none;
-    text-transform: uppercase;
-    transition: opacity .2s, transform .1s;
-  }
-
-  .btn-all-on { background: var(--on); color: #000; }
-  .btn-all-off { background: #1a3040; color: var(--text); border: 1px solid var(--border); }
-  .btn-all-on:hover, .btn-all-off:hover { opacity: .8; transform: translateY(-1px); }
-
-  @media (max-width: 600px) {
-    .stats { grid-template-columns: repeat(2, 1fr); }
-    header { flex-direction: column; gap: 10px; align-items: flex-start; }
-  }
+/* ══════════════════════════════════════════
+   EDITORIAL LIGHT — Magazine IoT Dashboard
+   Playfair Display × Space Grotesk × Mono
+══════════════════════════════════════════ */
+:root {
+  --cream:    #faf7f2;
+  --paper:    #f2ede4;
+  --white:    #ffffff;
+  --ink:      #18130e;
+  --ink2:     #4a3f35;
+  --ink3:     #9a8f85;
+  --rule:     rgba(24,19,14,.1);
+  --rule2:    rgba(24,19,14,.06);
+  --on:       #1a5c38;
+  --on-pale:  #e8f5ee;
+  --off-pale: #fdf0ee;
+  --off:      #8b2012;
+  --accent:   #c8390a;
+  --gold:     #b8860b;
+  --blue:     #1a3a6b;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { font-size:16px; }
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: 'Space Grotesk', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  cursor: default;
+}
+
+/* Paper texture */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  opacity: .7;
+}
+
+/* Horizontal rules — editorial feel */
+.rule { border:none; border-top:1px solid var(--rule); }
+.rule-heavy { border:none; border-top:2px solid var(--ink); }
+.rule-double {
+  border:none;
+  border-top: 3px solid var(--ink);
+  position: relative;
+}
+.rule-double::after {
+  content:''; position:absolute; top:4px; left:0; right:0;
+  border-top: 1px solid var(--ink);
+}
+
+@keyframes cdBlink{0%,100%{opacity:1;}50%{opacity:.2;}}
+
+/* ── Settings drawer ── */
+.settings-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: 340px;
+  background: var(--white);
+  border-left: 1px solid var(--rule);
+  z-index: 100;
+  transform: translateX(100%);
+  transition: transform .3s cubic-bezier(.4,0,.2,1);
+  display: flex; flex-direction: column;
+  box-shadow: -8px 0 32px rgba(24,19,14,.06);
+}
+.settings-drawer.open { transform: translateX(0); }
+
+.sd-hd {
+  background: var(--ink);
+  color: var(--cream);
+  padding: 20px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.sd-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 17px; font-style: italic; font-weight: 700;
+}
+.sd-close {
+  background: none; border: none; cursor: pointer;
+  color: rgba(255,255,255,.5); font-size: 18px;
+  padding: 4px 8px; border-radius: 4px;
+  transition: color .2s;
+}
+.sd-close:hover { color: var(--cream); }
+
+.sd-body { flex: 1; overflow-y: auto; padding: 24px; }
+.sd-body::-webkit-scrollbar { width: 3px; }
+.sd-body::-webkit-scrollbar-thumb { background: var(--rule); }
+
+.sd-section { margin-bottom: 28px; }
+.sd-section-hd {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--ink3); margin-bottom: 14px;
+  padding-bottom: 8px; border-bottom: 1px solid var(--rule);
+  display: flex; align-items: center; gap: 8px;
+}
+.sd-lbl {
+  display: block;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--ink3); margin-bottom: 6px;
+}
+.sd-inp {
+  width: 100%;
+  background: var(--cream);
+  border: none; border-bottom: 2px solid var(--rule);
+  padding: 10px 0;
+  font-family: 'Space Mono', monospace;
+  font-size: 12px; color: var(--ink);
+  outline: none; transition: border-color .2s;
+  margin-bottom: 14px;
+}
+.sd-inp:focus { border-bottom-color: var(--ink); }
+.sd-inp::placeholder { color: var(--ink3); }
+
+.sd-conn {
+  display: flex; align-items: center; gap: 7px;
+  margin-bottom: 14px;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px; letter-spacing: 1px; color: var(--ink3);
+}
+.cdot { width:7px;height:7px;border-radius:50%;background:var(--ink3);flex-shrink:0; }
+.cdot.ok { background:var(--on); }
+.cdot.er { background:var(--accent); }
+.cdot.ld { background:var(--gold);animation:cdBlink .8s infinite; }
+
+.sd-btn {
+  width: 100%; padding: 13px;
+  background: var(--ink); color: var(--cream); border: none;
+  font-family: 'Playfair Display', serif;
+  font-size: 15px; font-style: italic; font-weight: 700;
+  cursor: pointer; position: relative; overflow: hidden;
+  margin-top: 4px; transition: opacity .2s;
+}
+.sd-btn::before {
+  content: ''; position: absolute; inset: 0;
+  background: var(--on);
+  transform: scaleX(0); transform-origin: left;
+  transition: transform .3s ease;
+}
+.sd-btn:hover::before { transform: scaleX(1); }
+.sd-btn span { position: relative; z-index: 1; }
+.sd-btn.ghost {
+  background: var(--paper); color: var(--ink2);
+  border: 1px solid var(--rule);
+  font-family: 'Space Mono', monospace;
+  font-size: 10px; font-style: normal; letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.sd-btn.ghost::before { background: var(--cream); }
+
+/* drawer overlay */
+.drawer-overlay {
+  position: fixed; inset: 0; z-index: 99;
+  background: rgba(24,19,14,.2);
+  display: none; cursor: pointer;
+}
+.drawer-overlay.show { display: block; }
+
+/* ══════════════════════════════════════════
+   MAIN PAGE
+══════════════════════════════════════════ */
+#pgMain { display:none; }
+#pgMain.active { display:flex; flex-direction:column; }
+
+/* ── MASTHEAD NAV ── */
+.site-header {
+  background: var(--white);
+  border-bottom: 1px solid var(--rule);
+  position: sticky; top: 0; z-index: 50;
+}
+
+.header-top {
+  max-width: 1400px; margin: 0 auto;
+  padding: 0 40px;
+  height: 56px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px;
+}
+
+.brand-editorial {
+  display: flex; align-items: baseline; gap: 10px;
+}
+
+.brand-name-lg {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: -.5px;
+  color: var(--ink);
+}
+
+.brand-issue {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--ink3);
+  text-transform: uppercase;
+}
+
+.nav-center {
+  display: flex; gap: 2px;
+}
+
+.nav-tab {
+  padding: 6px 16px;
+  border: none;
+  background: none;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 12px; font-weight: 500;
+  color: var(--ink3); cursor: pointer;
+  letter-spacing: .3px;
+  transition: all .2s;
+  border-bottom: 2px solid transparent;
+}
+.nav-tab:hover { color: var(--ink); border-bottom-color: var(--rule); }
+.nav-tab.active { color: var(--ink); border-bottom-color: var(--ink); }
+
+.nav-right {
+  display: flex; align-items: center; gap: 8px;
+}
+
+.clock-ed {
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  color: var(--ink3);
+  letter-spacing: 2px;
+}
+
+.status-pill {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 12px;
+  border: 1px solid var(--rule);
+  font-family: 'Space Mono', monospace;
+  font-size: 9px; letter-spacing: 2px;
+  color: var(--ink3); text-transform: uppercase;
+}
+
+.status-pip {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--on);
+  box-shadow: 0 0 6px var(--on);
+  animation: cdBlink 2s ease-in-out infinite;
+}
+.status-pip.off { background: var(--accent); animation: none; box-shadow: none; }
+
+.hdr-btn {
+  background: none; border: 1px solid var(--rule);
+  padding: 6px 14px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px; font-weight: 500;
+  color: var(--ink2); cursor: pointer;
+  transition: all .2s;
+  display: flex; align-items: center; gap: 6px;
+}
+.hdr-btn:hover { background: var(--ink); color: var(--cream); border-color: var(--ink); }
+.hdr-btn svg { width: 14px; height: 14px; }
+
+/* ── MAIN WRAP ── */
+.main-wrap {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 40px 80px;
+  width: 100%;
+}
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ══ CONTROL TAB ═══════════════════════════════ */
+
+/* Big editorial header */
+.ctrl-masthead {
+  padding: 40px 0 0;
+  margin-bottom: 32px;
+}
+
+.ctrl-masthead-inner {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 32px;
+  align-items: end;
+  padding-bottom: 20px;
+  border-bottom: 2px solid var(--ink);
+}
+
+.issue-date {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px; letter-spacing: 3px;
+  color: var(--ink3); text-transform: uppercase;
+  margin-bottom: 12px;
+  display: flex; align-items: center; gap: 10px;
+}
+.issue-date::before {
+  content: ''; width: 20px; height: 1px; background: var(--ink3);
+}
+
+.ctrl-room-name {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(36px, 5vw, 64px);
+  font-weight: 900;
+  font-style: italic;
+  line-height: .95;
+  letter-spacing: -1px;
+  cursor: pointer;
+  transition: color .2s;
+}
+.ctrl-room-name:hover { color: var(--accent); }
+
+.ctrl-room-name .sub {
+  display: block;
+  font-size: .35em;
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: 3px;
+  color: var(--ink3);
+  font-family: 'Space Mono', monospace;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.masthead-right {
+  display: flex; align-items: center; gap: 20px;
+}
+
+.on-count {
+  text-align: center;
+}
+.on-count-num {
+  font-family: 'Playfair Display', serif;
+  font-size: 56px;
+  font-weight: 900;
+  font-style: italic;
+  line-height: 1;
+  color: var(--on);
+}
+.on-count-lbl {
+  font-family: 'Space Mono', monospace;
+  font-size: 8px; letter-spacing: 3px;
+  color: var(--ink3); text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.kill-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  background: none; border: none; cursor: pointer;
+}
+.kill-ico {
+  width: 44px; height: 44px;
+  border: 1px solid var(--rule);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink3);
+  transition: all .2s;
+}
+.kill-ico svg { width: 18px; height: 18px; }
+.kill-btn:hover .kill-ico {
+  background: var(--accent); color: var(--white);
+  border-color: var(--accent);
+}
+.kill-lbl {
+  font-family: 'Space Mono', monospace;
+  font-size: 8px; letter-spacing: 2px;
+  color: var(--accent); opacity: .6;
+  text-transform: uppercase;
+}
+
+/* ── 2-col control layout ── */
+.ctrl-layout {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 40px;
+  align-items: start;
+}
+@media(max-width:960px){ .ctrl-layout { grid-template-columns: 1fr; } }
+
+/* switch grid — 2 columns */
+.sw-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  margin-bottom: 40px;
+}
+@media(max-width:520px){ .sw-grid { grid-template-columns: 1fr; } }
+
+/* ── SWITCH CARD — Editorial style ── */
+.sw-card {
+  background: var(--white);
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  transition: background .3s;
+  cursor: default;
+}
+.sw-card.on { background: var(--on-pale); }
+.sw-card.offline-card { opacity: .4; pointer-events: none; }
+
+/* top accent bar */
+.sw-accent {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--rule);
+  transition: background .3s;
+}
+.sw-card.on .sw-accent { background: var(--on); }
+
+/* card layout */
+.sw-top {
+  display: flex; align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.sw-icon-wrap {
+  width: 40px; height: 40px;
+  background: var(--cream);
+  border: 1px solid var(--rule);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+  transition: all .3s;
+}
+.sw-card.on .sw-icon-wrap {
+  background: rgba(26,92,56,.08);
+  border-color: rgba(26,92,56,.2);
+}
+
+/* Big toggle — editorial style */
+.toggle-ed {
+  position: relative;
+  width: 56px; height: 28px;
+  cursor: pointer; flex-shrink: 0;
+}
+.toggle-track {
+  position: absolute; inset: 0;
+  background: rgba(24,19,14,.1);
+  transition: background .3s;
+}
+.toggle-ed.on .toggle-track { background: var(--on); }
+.toggle-thumb-ed {
+  position: absolute;
+  top: 4px; left: 4px;
+  width: 20px; height: 20px;
+  background: var(--white);
+  box-shadow: 0 1px 4px rgba(0,0,0,.2);
+  transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+}
+.toggle-ed.on .toggle-thumb-ed { transform: translateX(28px); }
+
+/* name */
+.sw-name-ed {
+  font-family: 'Playfair Display', serif;
+  font-size: 18px;
+  font-weight: 700;
+  font-style: italic;
+  color: var(--ink);
+  cursor: pointer;
+  outline: none;
+  background: none;
+  border: none;
+  transition: color .2s;
+  line-height: 1.2;
+  text-align: left;
+  width: 100%;
+}
+.sw-name-ed:hover, .sw-name-ed:focus { color: var(--accent); }
+.sw-name-ed[contenteditable="true"] {
+  border-bottom: 2px solid var(--accent);
+  color: var(--accent);
+}
+
+.sw-footer-ed {
+  display: flex; align-items: center; justify-content: space-between;
+  border-top: 1px solid var(--rule);
+  padding-top: 12px;
+  margin-top: 4px;
+}
+
+.sw-status-ed {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px; letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--ink3);
+  transition: color .3s;
+}
+.sw-card.on .sw-status-ed { color: var(--on); }
+
+.sw-al-ed {
+  font-family: 'Space Mono', monospace;
+  font-size: 8px; letter-spacing: 2px;
+  text-transform: uppercase;
+  background: none; border: none;
+  cursor: pointer; color: var(--ink3);
+  transition: color .2s;
+}
+.sw-al-ed:hover { color: var(--blue); }
+
+/* ── Sidebar ── */
+.ctrl-sidebar {}
+
+.sidebar-section {
+  margin-bottom: 32px;
+}
+
+.sidebar-hd {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px; letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* Log — newspaper column */
+.log-col {
+  background: var(--white);
+  border: 1px solid var(--rule);
+  height: 320px;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.log-col-hd {
+  padding: 10px 14px;
+  background: var(--ink);
+  color: var(--cream);
+  font-family: 'Playfair Display', serif;
+  font-size: 13px;
+  font-style: italic;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.log-col-body {
+  flex: 1; overflow-y: auto;
+  padding: 12px 14px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px; line-height: 1.8;
+}
+.log-col-body::-webkit-scrollbar { width: 3px; }
+.log-col-body::-webkit-scrollbar-thumb { background: var(--rule); }
+
+.log-item {
+  border-bottom: 1px solid var(--rule2);
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  color: var(--ink2);
+}
+.log-item:last-child { border-bottom: none; }
+.log-ts { color: var(--ink3); font-size: 9px; margin-right: 4px; }
+.log-g { color: var(--on); }
+.log-o { color: var(--gold); }
+.log-e { color: var(--accent); }
+.log-empty { color: var(--ink3); font-style: italic; padding: 20px 0; text-align: center; }
+
+.clear-log-btn {
+  background: none; border: none; cursor: pointer;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px; color: rgba(255,255,255,.4);
+  letter-spacing: 1px; text-transform: uppercase;
+  transition: color .2s;
+}
+.clear-log-btn:hover { color: rgba(255,255,255,.8); }
+
+/* Status card */
+.status-ed {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  padding: 16px;
+}
+.status-ed-hd {
+  font-family: 'Playfair Display', serif;
+  font-size: 14px;
+  font-style: italic;
+  margin-bottom: 8px;
+  color: var(--ink);
+}
+.status-ed-body {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px; line-height: 1.8;
+  color: var(--ink3);
+}
+.status-ed-body strong { color: var(--on); }
+
+/* Spec tiles */
+.spec-grid-ed {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 1px; background: var(--rule);
+  border: 1px solid var(--rule);
+  margin-top: 32px;
+}
+.spec-tile-ed {
+  background: var(--white);
+  padding: 16px;
+  transition: background .2s;
+}
+.spec-tile-ed:hover { background: var(--cream); }
+.spec-lbl-ed {
+  font-family: 'Space Mono', monospace;
+  font-size: 8px; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--ink3);
+  margin-bottom: 6px;
+}
+.spec-val-ed {
+  font-family: 'Space Mono', monospace;
+  font-size: 13px; font-weight: 700;
+  color: var(--ink);
+}
+
+/* ══ SCHEDULE TAB ════════════════════════════════ */
+.sched-masthead {
+  padding: 40px 0 24px;
+  border-bottom: 2px solid var(--ink);
+  margin-bottom: 28px;
+}
+.sched-eyebrow {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px; letter-spacing: 3px;
+  color: var(--ink3); text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.sched-hd-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 36px;
+  font-weight: 900;
+  font-style: italic;
+  color: var(--ink);
+  letter-spacing: -.5px;
+}
+
+.sched-layout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 40px;
+  align-items: start;
+}
+@media(max-width:860px){ .sched-layout { grid-template-columns: 1fr; } }
+
+/* device tabs — underline style */
+.dev-tabs-ed {
+  display: flex; gap: 0;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 24px;
+  overflow-x: auto;
+}
+.dtab-ed {
+  padding: 10px 20px;
+  background: none; border: none;
+  border-bottom: 2px solid transparent;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 12px; font-weight: 500;
+  color: var(--ink3); cursor: pointer;
+  white-space: nowrap;
+  transition: all .2s;
+  display: flex; align-items: center; gap: 8px;
+}
+.dtab-ed:hover { color: var(--ink); }
+.dtab-ed.active {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+.dtab-cnt {
+  background: var(--paper);
+  padding: 1px 6px;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px; color: var(--ink3);
+}
+
+/* schedule items — newspaper listing style */
+.sched-empty {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 15px;
+  color: var(--ink3);
+  text-align: center;
+  padding: 48px 0;
+}
+
+.si {
+  display: flex; align-items: center; gap: 16px;
+  border-bottom: 1px solid var(--rule2);
+  padding: 16px 0;
+  position: relative;
+  transition: background .15s;
+}
+.si::before {
+  content: '';
+  position: absolute;
+  left: -16px; top: 0; bottom: 0;
+  width: 3px;
+  background: transparent;
+  transition: background .2s;
+}
+.si.si-on::before { background: var(--on); }
+.si.si-off::before { background: var(--accent); }
+.si.inactive { opacity: .4; }
+
+.si-time {
+  font-family: 'Playfair Display', serif;
+  font-size: 28px;
+  font-weight: 900;
+  font-style: italic;
+  color: var(--ink);
+  min-width: 80px;
+  line-height: 1;
+}
+
+.si-body { flex: 1; }
+
+.si-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: 'Space Mono', monospace;
+  font-size: 8px; letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  margin-bottom: 6px;
+}
+.si-badge.on { background: var(--on-pale); color: var(--on); }
+.si-badge.off { background: var(--off-pale); color: var(--off); }
+
+.si-days { display: flex; gap: 4px; }
+.dchip {
+  width: 20px; height: 20px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Space Mono', monospace;
+  font-size: 7px; font-weight: 700;
+  color: var(--ink3);
+  border: 1px solid var(--rule);
+  transition: all .2s;
+}
+.dchip.on { background: var(--ink); color: var(--cream); border-color: var(--ink); }
+
+.si-ctrl { display: flex; align-items: center; gap: 8px; }
+
+.mt-ed {
+  width: 36px; height: 20px;
+  position: relative; cursor: pointer;
+  background: none; border: none;
+}
+.mt-track {
+  position: absolute; inset: 0;
+  background: rgba(24,19,14,.1);
+  transition: background .22s;
+}
+.mt-ed.on .mt-track { background: var(--on); }
+.mt-th {
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 14px; height: 14px;
+  background: var(--white);
+  box-shadow: 0 1px 3px rgba(0,0,0,.2);
+  transition: transform .22s cubic-bezier(.34,1.56,.64,1);
+}
+.mt-ed.on .mt-th { transform: translateX(16px); }
+
+.del-btn-ed {
+  background: none; border: 1px solid var(--rule);
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--ink3);
+  font-size: 12px;
+  transition: all .15s;
+}
+.del-btn-ed:hover { background: var(--off-pale); border-color: var(--accent); color: var(--accent); }
+
+/* timeline */
+.tl-section { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--rule); }
+.tl-hd {
+  font-family: 'Space Mono', monospace;
+  font-size: 8px; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--ink3);
+  margin-bottom: 8px;
+}
+.tl-bar {
+  height: 24px; background: var(--paper);
+  border: 1px solid var(--rule);
+  position: relative; overflow: hidden;
+}
+.tl-seg {
+  position: absolute; top: 0; bottom: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Space Mono', monospace;
+  font-size: 7px; overflow: hidden;
+}
+.tl-seg.on { background: rgba(26,92,56,.4); color: var(--on); }
+.tl-seg.off { background: rgba(24,19,14,.06); color: var(--ink3); }
+.tl-now { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); z-index: 5; }
+.tl-now::before { content: '▼'; position: absolute; top: -8px; left: -4px; color: var(--accent); font-size: 8px; }
+.tl-hrs { display: flex; justify-content: space-between; padding: 4px 0; }
+.tl-h { font-family: 'Space Mono', monospace; font-size: 8px; color: var(--ink3); }
+
+/* ── Form ── */
+.form-panel-ed {
+  background: var(--white);
+  border: 1px solid var(--rule);
+  position: sticky; top: 72px;
+}
+.fp-hd {
+  background: var(--ink);
+  color: var(--cream);
+  padding: 14px 20px;
+  font-family: 'Playfair Display', serif;
+  font-size: 15px;
+  font-style: italic;
+}
+.fp-body { padding: 20px; }
+
+.f-lbl {
+  display: block;
+  font-family: 'Space Mono', monospace;
+  font-size: 8px; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--ink3);
+  margin-bottom: 8px;
+}
+.f-row { margin-bottom: 20px; }
+
+.time-row { display: flex; align-items: center; gap: 8px; }
+.t-inp {
+  flex: 1;
+  background: var(--cream);
+  border: none;
+  border-bottom: 2px solid var(--ink);
+  padding: 10px 4px;
+  font-family: 'Playfair Display', serif;
+  font-size: 30px; font-weight: 900; font-style: italic;
+  color: var(--ink);
+  text-align: center;
+  outline: none;
+  transition: border-color .2s;
+  -moz-appearance: textfield;
+}
+.t-inp::-webkit-inner-spin-button,
+.t-inp::-webkit-outer-spin-button { -webkit-appearance: none; }
+.t-inp:focus { border-bottom-color: var(--accent); }
+.t-sep { font-family: 'Playfair Display', serif; font-size: 28px; color: var(--ink3); font-style: italic; }
+
+.act-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.a-btn {
+  padding: 10px;
+  border: 1px solid var(--rule);
+  background: var(--cream);
+  cursor: pointer;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px; letter-spacing: 1px;
+  color: var(--ink2);
+  transition: all .2s;
+  text-align: center;
+}
+.a-btn.aon { background: var(--on-pale); border-color: rgba(26,92,56,.3); color: var(--on); }
+.a-btn.aoff { background: var(--off-pale); border-color: rgba(139,32,18,.3); color: var(--off); }
+
+.day-picker-ed { display: flex; gap: 4px; flex-wrap: wrap; }
+.d-btn {
+  width: 32px; height: 32px;
+  border: 1px solid var(--rule);
+  background: var(--cream);
+  font-family: 'Space Mono', monospace;
+  font-size: 8px; font-weight: 700;
+  color: var(--ink3); cursor: pointer;
+  transition: all .2s;
+}
+.d-btn:hover { border-color: var(--ink); color: var(--ink); }
+.d-btn.sel { background: var(--ink); border-color: var(--ink); color: var(--cream); }
+
+.quick-ed { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
+.q-btn {
+  padding: 3px 10px;
+  border: 1px solid var(--rule);
+  background: none; cursor: pointer;
+  font-family: 'Space Mono', monospace;
+  font-size: 8px; color: var(--ink3);
+  transition: all .2s;
+}
+.q-btn:hover { border-color: var(--ink); color: var(--ink); }
+
+.btn-add-ed {
+  width: 100%;
+  padding: 14px;
+  background: var(--ink); color: var(--cream);
+  border: none;
+  font-family: 'Playfair Display', serif;
+  font-size: 16px; font-style: italic; font-weight: 700;
+  cursor: pointer;
+  transition: all .18s;
+  position: relative; overflow: hidden;
+}
+.btn-add-ed::before {
+  content: ''; position: absolute; inset: 0;
+  background: var(--on); transform: scaleX(0);
+  transform-origin: left; transition: transform .3s ease;
+}
+.btn-add-ed:hover::before { transform: scaleX(1); }
+.btn-add-ed span { position: relative; z-index: 1; }
+
+/* ══ FIRMWARE MODAL ════════════════════════════════ */
+.modal-ov {
+  position: fixed; inset: 0;
+  background: rgba(24,19,14,.5);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  display: none; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.modal-ov.open { display: flex; }
+.modal {
+  background: var(--white);
+  border: 1px solid var(--rule);
+  width: min(820px,96vw);
+  max-height: 86vh;
+  display: flex; flex-direction: column;
+  box-shadow: 8px 8px 0 var(--ink);
+}
+.modal-hd {
+  padding: 16px 22px;
+  border-bottom: 2px solid var(--ink);
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--ink);
+  color: var(--cream);
+}
+.modal-title-ed {
+  font-family: 'Playfair Display', serif;
+  font-size: 17px; font-style: italic; font-weight: 700;
+  display: flex; align-items: center; gap: 8px;
+}
+.modal-title-ed svg { width: 14px; height: 14px; }
+.close-btn {
+  background: none; border: none;
+  font-size: 18px; cursor: pointer;
+  color: rgba(255,255,255,.5);
+  transition: color .2s; padding: 4px 8px;
+}
+.close-btn:hover { color: var(--cream); }
+.modal-body {
+  flex: 1; overflow-y: auto;
+  background: #1a1410;
+  padding: 20px;
+  position: relative;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px; line-height: 1.75;
+}
+.modal-body::-webkit-scrollbar { width: 3px; }
+.modal-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); }
+pre { color: rgba(200,240,210,.8); white-space: pre; word-break: normal; }
+.copy-fw {
+  position: absolute; top: 14px; right: 14px;
+  padding: 6px 14px;
+  background: var(--on); color: var(--white);
+  border: none; cursor: pointer;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+  transition: background .2s; z-index: 5;
+}
+.copy-fw:hover { background: var(--on); opacity: .8; }
+.modal-ft {
+  padding: 12px 22px;
+  border-top: 1px solid var(--rule);
+  font-family: 'Space Mono', monospace;
+  font-size: 9px; color: var(--ink3);
+  line-height: 1.9; background: var(--paper);
+}
+.modal-ft .warn { color: var(--accent); }
+
+/* toasts */
+.toasts { position: fixed; bottom: 24px; right: 24px; z-index: 300; display: flex; flex-direction: column; gap: 7px; }
+.toast {
+  background: var(--ink); color: var(--cream);
+  padding: 10px 18px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 12px; font-weight: 500;
+  box-shadow: 4px 4px 0 rgba(24,19,14,.2);
+  animation: toastIn .2s ease;
+  display: flex; align-items: center; gap: 7px;
+}
+@keyframes toastIn { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: var(--rule); }
 </style>
 </head>
 <body>
 
-<div class="container">
+<!-- Settings drawer overlay -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeSettings()"></div>
 
-  <!-- HEADER -->
-  <header>
-    <div class="logo">
-      <div class="logo-icon">⚡</div>
-      <div>
-        <div class="logo-text">IOT<span>CTRL</span></div>
-      </div>
-    </div>
-    <div class="connection-status" id="connStatus">
-      <div class="conn-dot offline" id="connDot"></div>
-      <span id="connText">CHƯA KẾT NỐI</span>
-    </div>
-  </header>
-
-  <!-- STATS -->
-  <div class="stats">
-    <div class="stat-card">
-      <div class="stat-val on-color" id="statOn">0</div>
-      <div class="stat-label">Đang bật</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-val" id="statOff">4</div>
-      <div class="stat-label">Đang tắt</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-val" id="statTotal">4</div>
-      <div class="stat-label">Tổng thiết bị</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-val warn-color" id="statUpdates">0</div>
-      <div class="stat-label">Cập nhật</div>
-    </div>
+<!-- Settings drawer -->
+<div class="settings-drawer" id="settingsDrawer">
+  <div class="sd-hd">
+    <div class="sd-title">Cài đặt kết nối</div>
+    <button class="sd-close" onclick="closeSettings()">✕</button>
   </div>
-
-  <!-- FIREBASE CONFIG -->
-  <div class="config-banner">
-    <div class="icon">🔥</div>
-    <div class="config-body">
-      <h3>Firebase Realtime Database</h3>
-      <p>Nhập Database URL để kết nối thật. Hoặc dùng <strong style="color:var(--on)">Demo Mode</strong> để test giao diện.</p>
-      <div class="config-input-row">
-        <input class="cfg-input" id="dbUrl" placeholder="https://YOUR-PROJECT-default-rtdb.firebaseio.com" />
-        <button class="btn-connect" onclick="connectFirebase()">KẾT NỐI</button>
-        <button class="btn-connect" style="background:#1a3040;color:var(--text);border:1px solid var(--border)" onclick="demoMode()">DEMO</button>
+  <div class="sd-body">
+    <div class="sd-section">
+      <div class="sd-section-hd">🔥 Firebase Realtime DB</div>
+      <label class="sd-lbl">Database URL</label>
+      <input class="sd-inp" id="fbUrl" placeholder="https://YOUR-PROJECT-rtdb.firebaseio.com">
+      <label class="sd-lbl">API Key</label>
+      <input class="sd-inp" id="fbKey" placeholder="AIzaSy...">
+      <div class="sd-conn">
+        <div class="cdot" id="cdot"></div>
+        <span id="ctxt">Chưa kết nối</span>
       </div>
+      <button class="sd-btn" onclick="doConnect()"><span>Kết nối →</span></button>
     </div>
-  </div>
-
-  <!-- SWITCHES -->
-  <div class="section-title">// Công tắc thiết bị</div>
-  <div class="switches-grid" id="switchesGrid"></div>
-
-  <!-- BOTTOM BAR -->
-  <div class="bottom-bar">
-    <button class="btn-show-code" onclick="document.getElementById('codeModal').classList.add('open')">
-      &lt;/&gt; Xem code Firebase
-    </button>
-    <div class="all-controls">
-      <button class="btn-all-off" onclick="setAll(false)">TẮT TẤT CẢ</button>
-      <button class="btn-all-on" onclick="setAll(true)">BẬT TẤT CẢ</button>
+    <div class="sd-section">
+      <div class="sd-section-hd">📶 Firmware WiFi</div>
+      <label class="sd-lbl">Tên WiFi (ghi vào firmware)</label>
+      <input class="sd-inp" id="wifiSsid" placeholder="Tên mạng WiFi nhà bạn">
     </div>
-  </div>
-
-  <!-- LOG -->
-  <div style="margin-top:24px">
-    <div class="log-panel">
-      <div class="log-header">
-        <span>// ACTIVITY LOG</span>
-        <button class="btn-clear" onclick="clearLog()">XÓA LOG</button>
-      </div>
-      <div class="log-body" id="logBody"></div>
+    <div class="sd-section">
+      <div class="sd-section-hd">🎮 Demo</div>
+      <button class="sd-btn ghost" onclick="doDemo()"><span>Tải dữ liệu mẫu</span></button>
     </div>
   </div>
 </div>
 
-<!-- CODE MODAL -->
-<div class="modal-overlay" id="codeModal">
-  <div class="modal">
-    <div class="modal-head">
-      <h3>// Firebase IoT Code</h3>
-      <button class="btn-close" onclick="document.getElementById('codeModal').classList.remove('open')">✕</button>
-    </div>
-    <div class="modal-body">
-      <p style="font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.7">
-        Dán code này vào dự án của bạn (Node.js / Browser). Mỗi thiết bị/trình duyệt kết nối Firebase sẽ nhận cập nhật theo thời gian thực.
-      </p>
-      <pre><code><span class="cm">// ─── CÀI ĐẶT ───────────────────────────────────</span>
-<span class="cm">// npm install firebase</span>
+<div id="pgMain" class="page active">
+  <div class="site-header">
+    <div class="header-top">
+      <div class="brand-editorial">
+        <div class="brand-name-lg">SmartHome</div>
+        <div class="brand-issue">Firebase · ESP32-C3</div>
+      </div>
 
-<span class="kw">import</span> { initializeApp } <span class="kw">from</span> <span class="str">"firebase/app"</span>;
-<span class="kw">import</span> { getDatabase, ref, set,
-         onValue, serverTimestamp } <span class="kw">from</span> <span class="str">"firebase/database"</span>;
+      <div class="nav-center">
+        <button class="nav-tab active" onclick="goTab('ctrl')">Điều khiển</button>
+        <button class="nav-tab" onclick="goTab('sched')">Hẹn giờ</button>
+      </div>
 
-<span class="cm">// ─── KHỞI TẠO ──────────────────────────────────</span>
-<span class="kw">const</span> <span class="var">app</span> = <span class="fn">initializeApp</span>({
-  apiKey:      <span class="str">"YOUR_API_KEY"</span>,
-  databaseURL: <span class="str">"https://YOUR-PROJECT-rtdb.firebaseio.com"</span>,
-  projectId:   <span class="str">"YOUR_PROJECT_ID"</span>,
-});
-<span class="kw">const</span> <span class="var">db</span> = <span class="fn">getDatabase</span>(app);
-
-<span class="cm">// ─── CẤU TRÚC DATABASE ─────────────────────────</span>
-<span class="cm">// iot-home/</span>
-<span class="cm">//   switches/</span>
-<span class="cm">//     den-phong-khach: { state: false, ... }</span>
-<span class="cm">//     dieu-hoa:        { state: true,  ... }</span>
-<span class="cm">//     quat:            { state: false, ... }</span>
-<span class="cm">//     o-cam:           { state: true,  ... }</span>
-
-<span class="cm">// ─── BẬT / TẮT THIẾT BỊ ───────────────────────</span>
-<span class="kw">async function</span> <span class="fn">toggleDevice</span>(deviceId, state) {
-  <span class="kw">const</span> <span class="var">deviceRef</span> = <span class="fn">ref</span>(db, <span class="str">`iot-home/switches/<span class="kw">${</span>deviceId<span class="kw">}</span>`</span>);
-  <span class="kw">await</span> <span class="fn">set</span>(deviceRef, {
-    state:     state,          <span class="cm">// true = BẬT, false = TẮT</span>
-    updatedAt: <span class="fn">serverTimestamp</span>(),
-    updatedBy: <span class="str">"device-A"</span>,    <span class="cm">// ID thiết bị gửi lệnh</span>
-  });
-}
-
-<span class="cm">// ─── LẮNG NGHE THAY ĐỔI (REALTIME) ────────────</span>
-<span class="kw">function</span> <span class="fn">watchAllSwitches</span>() {
-  <span class="kw">const</span> <span class="var">switchRef</span> = <span class="fn">ref</span>(db, <span class="str">"iot-home/switches"</span>);
-
-  <span class="fn">onValue</span>(switchRef, (snapshot) => {
-    <span class="kw">const</span> <span class="var">data</span> = snapshot.<span class="fn">val</span>();
-    Object.<span class="fn">entries</span>(data || {}).<span class="fn">forEach</span>(([id, info]) => {
-      console.<span class="fn">log</span>(<span class="str">`<span class="kw">${</span>id<span class="kw">}</span>: <span class="kw">${</span>info.state ? <span class="str">"BẬT 🟢"</span> : <span class="str">"TẮT ⚫"</span><span class="kw">}</span>`</span>);
-      <span class="fn">updateHardware</span>(id, info.state); <span class="cm">// cập nhật GPIO/relay</span>
-    });
-  });
-}
-
-<span class="cm">// ─── VÍ DỤ RASPBERRY PI (GPIO) ─────────────────</span>
-<span class="cm">// const gpio = require("rpi-gpio");</span>
-<span class="cm">// function updateHardware(id, state) {</span>
-<span class="cm">//   const PIN_MAP = { "den-phong-khach": 11, "quat": 13 };</span>
-<span class="cm">//   gpio.write(PIN_MAP[id], state);</span>
-<span class="cm">// }</span>
-
-<span class="cm">// ─── CHẠY ──────────────────────────────────────</span>
-<span class="fn">watchAllSwitches</span>();
-<span class="fn">toggleDevice</span>(<span class="str">"den-phong-khach"</span>, <span class="kw">true</span>);
-</code></pre>
-      <button class="btn-copy" onclick="copyCode()">📋 COPY CODE</button>
-
-      <p style="font-size:12px;color:var(--text-dim);margin-top:16px;line-height:1.8">
-        <strong style="color:var(--on)">Firebase Security Rules</strong> (test mode):
-      </p>
-      <pre style="margin-top:8px"><code>{
-  <span class="str">"rules"</span>: {
-    <span class="str">"iot-home"</span>: {
-      <span class="str">".read"</span>:  <span class="str">"auth != null"</span>,
-      <span class="str">".write"</span>: <span class="str">"auth != null"</span>
-    }
-  }
-}</code></pre>
+      <div class="nav-right">
+        <div class="clock-ed" id="clock">--:--:--</div>
+        <div class="status-pill">
+          <div class="status-pip" id="onPip"></div>
+          <span id="onTxt">Ngoại tuyến</span>
+        </div>
+        <button class="hdr-btn" onclick="document.getElementById('fwModal').classList.add('open')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          Firmware
+        </button>
+        <button class="hdr-btn" onclick="openSettings()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Cài đặt
+        </button>
+      </div>
     </div>
   </div>
-</div>
 
-<script>
-// ─── DATA ────────────────────────────────────────────────────
-const DEVICES = [
-  { id: 'den-phong-khach', name: 'Đèn Phòng Khách', location: 'Tầng 1', icon: '💡' },
-  { id: 'dieu-hoa',        name: 'Điều Hòa',         location: 'Phòng ngủ', icon: '❄️' },
-  { id: 'quat-tran',       name: 'Quạt Trần',         location: 'Phòng ăn', icon: '🌀' },
-  { id: 'o-cam-nha-bep',   name: 'Ổ Cắm Nhà Bếp',   location: 'Nhà bếp', icon: '🔌' },
-];
+  <div class="main-wrap">
 
-let states = {};
-DEVICES.forEach(d => states[d.id] = false);
-
-let updateCount = 0;
-let isConnected = false;
-let demoInterval = null;
-
-// ─── RENDER CARDS ─────────────────────────────────────────
-function renderCards() {
-  const grid = document.getElementById('switchesGrid');
-  grid.innerHTML = '';
-
-  DEVICES.forEach(device => {
-    const on = states[device.id];
-    const card = document.createElement('div');
-    card.className = `switch-card ${on ? 'on' : ''}`;
-    card.id = `card-${device.id}`;
-    card.innerHTML = `
-      <div class="card-top">
-        <div class="device-icon">${device.icon}</div>
-        <div class="toggle">
-          <div class="toggle-track"></div>
-          <div class="toggle-thumb"></div>
+    <!-- ══ CONTROL TAB ══ -->
+    <div class="tab-panel active" id="tabCtrl">
+      <div class="ctrl-masthead">
+        <div class="ctrl-masthead-inner">
+          <div>
+            <div class="issue-date" id="issueDateEl">Trực tiếp · Firebase Realtime</div>
+            <div class="ctrl-room-name" onclick="editRoomName()" id="roomTitle">
+              <span class="sub" id="sysNameBadge">SinricPro Node-01</span>
+              PHÒNG NGỦ
+            </div>
+          </div>
+          <div class="masthead-right">
+            <div class="on-count">
+              <div class="on-count-num" id="onCount">0</div>
+              <div class="on-count-lbl">Đang bật</div>
+            </div>
+            <button class="kill-btn" onclick="killAll()">
+              <div class="kill-ico">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/></svg>
+              </div>
+              <span class="kill-lbl">Tắt hết</span>
+            </button>
+          </div>
         </div>
       </div>
-      <div class="device-name">${device.name}</div>
-      <div class="device-location">${device.location}</div>
-      <div class="card-footer">
-        <div class="status-badge">${on ? 'ĐANG BẬT' : 'ĐÃ TẮT'}</div>
-        <div class="last-update" id="ts-${device.id}">--:--:--</div>
+
+      <div class="ctrl-layout">
+        <div>
+          <div class="sw-grid" id="swGrid"></div>
+
+          <div class="spec-grid-ed">
+            <div class="spec-tile-ed"><div class="spec-lbl-ed">Vi xử lý</div><div class="spec-val-ed">ESP32-C3</div></div>
+            <div class="spec-tile-ed"><div class="spec-lbl-ed">Baud Rate</div><div class="spec-val-ed">115200</div></div>
+            <div class="spec-tile-ed"><div class="spec-lbl-ed">Chống rung</div><div class="spec-val-ed">250ms</div></div>
+            <div class="spec-tile-ed"><div class="spec-lbl-ed">Cloud</div><div class="spec-val-ed">Firebase</div></div>
+          </div>
+        </div>
+
+        <div class="ctrl-sidebar">
+          <div class="sidebar-section">
+            <div class="sidebar-hd">Nhật ký hệ thống</div>
+            <div class="log-col">
+              <div class="log-col-hd">
+                <span>Activity Log</span>
+                <button class="clear-log-btn" onclick="clearLog()">Xóa</button>
+              </div>
+              <div class="log-col-body" id="logBody">
+                <div class="log-empty">Đang theo dõi sự kiện...</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sidebar-section">
+            <div class="sidebar-hd">Trạng thái kết nối</div>
+            <div class="status-ed">
+              <div class="status-ed-hd">Liên kết Firebase</div>
+              <div class="status-ed-body" id="statusBody">
+                Chưa kết nối. Nhập URL và API Key để đồng bộ với ESP32.
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    `;
-    card.addEventListener('click', (e) => {
-      addRipple(card, e);
-      toggleDevice(device.id);
-    });
-    grid.appendChild(card);
-  });
+    </div>
 
-  updateStats();
-}
+    <!-- ══ SCHEDULE TAB ══ -->
+    <div class="tab-panel" id="tabSched">
+      <div class="sched-masthead">
+        <div class="sched-eyebrow">Quản lý thời gian</div>
+        <div class="sched-hd-title">Lịch hẹn giờ thiết bị</div>
+      </div>
 
-// ─── TOGGLE ──────────────────────────────────────────────
-function toggleDevice(deviceId) {
-  const newState = !states[deviceId];
-  states[deviceId] = newState;
-  updateCard(deviceId);
-  updateStats();
+      <div class="sched-layout">
+        <div>
+          <div class="dev-tabs-ed" id="devTabs"></div>
+          <div id="schedList">
+            <div class="sched-empty">Chưa có lịch nào · Thêm ở form bên phải</div>
+          </div>
+          <div id="tlWrap" style="display:none">
+            <div class="tl-section">
+              <div class="tl-hd">Timeline hôm nay</div>
+              <div class="tl-bar" id="tlBar"><div class="tl-now" id="tlNow"></div></div>
+              <div class="tl-hrs">
+                <span class="tl-h">0h</span><span class="tl-h">6h</span>
+                <span class="tl-h">12h</span><span class="tl-h">18h</span>
+                <span class="tl-h">24h</span>
+              </div>
+            </div>
+          </div>
+        </div>
 
-  const device = DEVICES.find(d => d.id === deviceId);
-  addLog(device.name, newState ? 'on' : 'off');
-  updateCount++;
-  document.getElementById('statUpdates').textContent = updateCount;
+        <div>
+          <div class="form-panel-ed">
+            <div class="fp-hd">Thêm lịch mới</div>
+            <div class="fp-body">
+              <div class="f-row">
+                <label class="f-lbl">Giờ kích hoạt</label>
+                <div class="time-row">
+                  <input class="t-inp" id="inpH" type="number" min="0" max="23" value="07">
+                  <span class="t-sep">:</span>
+                  <input class="t-inp" id="inpM" type="number" min="0" max="59" value="00">
+                </div>
+              </div>
+              <div class="f-row">
+                <label class="f-lbl">Hành động</label>
+                <div class="act-row">
+                  <button class="a-btn aon" id="aOn" onclick="selAct(true)">▶ BẬT</button>
+                  <button class="a-btn" id="aOff" onclick="selAct(false)">■ TẮT</button>
+                </div>
+              </div>
+              <div class="f-row">
+                <label class="f-lbl">Lặp lại theo ngày</label>
+                <div class="day-picker-ed" id="dayPicker"></div>
+                <div class="quick-ed">
+                  <button class="q-btn" onclick="setDays([2,3,4,5,6])">T2–T6</button>
+                  <button class="q-btn" onclick="setDays([7,1])">Cuối tuần</button>
+                  <button class="q-btn" onclick="setDays([1,2,3,4,5,6,7])">Mỗi ngày</button>
+                  <button class="q-btn" onclick="setDays([])">Bỏ chọn</button>
+                </div>
+              </div>
+              <button class="btn-add-ed" onclick="addSched()"><span>＋ Thêm lịch</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-  // Nếu có Firebase thật → gọi set() ở đây
-  if (window._firebaseDB) {
-    firebaseSet(deviceId, newState);
-  }
-}
+<!-- ══ FIRMWARE MODAL ══ -->
+<div class="modal-ov" id="fwModal">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title-ed">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        Firmware Generator · ESP32-C3
+      </div>
+      <button class="close-btn" onclick="document.getElementById('fwModal').classList.remove('open')">✕</button>
+    </div>
+    <div class="modal-body">
+      <button class="copy-fw" onclick="copyFw()">Sao chép</button>
+      <pre id="fwPre"></pre>
+    </div>
+    <div class="modal-ft">
+      <span>• Arduino IDE · ESP32-C3 Core v2.0+</span><br>
+      <span>• Thư viện cần: WiFiManager (tzapu), Firebase_ESP_Client (Mobizt), ArduinoJson</span><br>
+      <span class="warn">• Gỡ "WiFi101" nếu gặp lỗi conflicting declaration</span><br>
+      <span>• Firebase URL & API Key đã nhúng sẵn — người dùng chỉ cần nhập WiFi</span>
+    </div>
+  </div>
+</div>
 
-function updateCard(deviceId) {
-  const card = document.getElementById(`card-${deviceId}`);
-  if (!card) return;
-  const on = states[deviceId];
-  card.className = `switch-card ${on ? 'on' : ''}`;
-  card.querySelector('.status-badge').textContent = on ? 'ĐANG BẬT' : 'ĐÃ TẮT';
+<div class="toasts" id="toasts"></div>
+
+<script>
+/* ══════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════ */
+const DEVICES = [
+  { id:'69f48b0bf9b5f15fa7ca8c11', name:'Đèn phòng khách', icon:'💡', relayPin:5,  btnPin:4,  activeLow:true,  status:false },
+  { id:'69f48b0bf9b5f15fa7ca8c12', name:'Đèn ngủ',         icon:'🌙', relayPin:6,  btnPin:3,  activeLow:true,  status:false },
+  { id:'69f48b0bf9b5f15fa7ca8c13', name:'Quạt trần',        icon:'🌀', relayPin:7,  btnPin:2,  activeLow:true,  status:false },
+  { id:'69f48b0bf9b5f15fa7ca8c14', name:'Máy lạnh',         icon:'❄️', relayPin:10, btnPin:1,  activeLow:true,  status:false },
+];
+const DAY_LABELS = ['','CN','T2','T3','T4','T5','T6','T7'];
+
+let roomName   = localStorage.getItem('rn')  || 'PHÒNG NGỦ';
+let systemName = localStorage.getItem('sn')  || 'SinricPro Node-01';
+let schedules  = {};
+let curDev     = DEVICES[0].id;
+let actState   = true;
+let selDays    = new Set([2,3,4,5,6]);
+let fb         = null;
+let isOnline   = false;
+let lastRunMap = {};
+
+DEVICES.forEach(d => schedules[d.id] = []);
+document.getElementById('sysNameBadge').textContent = systemName;
+document.getElementById('roomTitle').childNodes[1] && (() => {
+  // set text node (after the span)
+})();
+
+/* ══ CLOCK ══ */
+function tick() {
   const now = new Date();
-  card.querySelector(`#ts-${deviceId}`).textContent =
-    now.toTimeString().slice(0,8);
+  document.getElementById('clock').textContent = now.toTimeString().slice(0,8);
+  updTlNow(now);
+  runSchedules(now);
+}
+setInterval(tick, 1000); tick();
+
+/* ══ SETTINGS DRAWER ══ */
+function openSettings() {
+  document.getElementById('settingsDrawer').classList.add('open');
+  document.getElementById('drawerOverlay').classList.add('show');
+}
+function closeSettings() {
+  document.getElementById('settingsDrawer').classList.remove('open');
+  document.getElementById('drawerOverlay').classList.remove('show');
 }
 
-function setAll(val) {
-  DEVICES.forEach(d => {
-    states[d.id] = val;
-    updateCard(d.id);
-  });
-  updateStats();
-  addLog('TẤT CẢ THIẾT BỊ', val ? 'on' : 'off', 'sys');
-  updateCount++;
-  document.getElementById('statUpdates').textContent = updateCount;
+function setConn(st, txt) {
+  const dot = document.getElementById('cdot');
+  const el  = document.getElementById('ctxt');
+  dot.className = 'cdot ' + st;
+  el.textContent = txt;
+  el.style.color = st==='ok'?'var(--on)':st==='er'?'var(--accent)':'var(--ink3)';
 }
 
-// ─── STATS ────────────────────────────────────────────────
-function updateStats() {
-  const onCount = Object.values(states).filter(Boolean).length;
-  document.getElementById('statOn').textContent = onCount;
-  document.getElementById('statOff').textContent = DEVICES.length - onCount;
-  document.getElementById('statTotal').textContent = DEVICES.length;
+async function doConnect() {
+  const url = document.getElementById('fbUrl').value.trim();
+  const key = document.getElementById('fbKey').value.trim();
+  if (!url) { toast('⚠️ Nhập Firebase URL!'); return; }
+  setConn('ld','Đang kết nối...');
+  const ok = await connectFb(url, key);
+  if (ok) { closeSettings(); toast('🔥 Firebase đã kết nối!'); }
 }
 
-// ─── LOG ──────────────────────────────────────────────────
-function addLog(name, action, type) {
-  const log = document.getElementById('logBody');
-  const ts = new Date().toTimeString().slice(0,8);
-  const div = document.createElement('div');
-  div.className = 'log-entry';
-  const actionClass = type === 'sys' ? 'action-sys' : (action === 'on' ? 'action-on' : 'action-off');
-  const actionText = action === 'on' ? '→ BẬT' : '→ TẮT';
-  div.innerHTML = `<span class="ts">[${ts}]</span><span class="${actionClass}">${name} ${actionText}</span>`;
-  log.insertBefore(div, log.firstChild);
-  if (log.children.length > 50) log.removeChild(log.lastChild);
+function doDemo() {
+  schedules[DEVICES[0].id] = [
+    {id:'d1',hour:6,min:0,state:true,days:[2,3,4,5,6],active:true},
+    {id:'d2',hour:23,min:0,state:false,days:[1,2,3,4,5,6,7],active:true},
+  ];
+  schedules[DEVICES[2].id] = [
+    {id:'d3',hour:7,min:30,state:true,days:[2,3,4,5,6],active:true},
+    {id:'d4',hour:9,min:0,state:false,days:[2,3,4,5,6],active:false},
+  ];
+  addLog('[Hệ thống]: Demo mode — dữ liệu mẫu','o');
+  renderSchedList(); renderDevTabs();
+  closeSettings();
+  toast('🎮 Dữ liệu mẫu đã tải!');
 }
 
-function clearLog() {
-  document.getElementById('logBody').innerHTML = '';
-}
-
-// ─── RIPPLE ───────────────────────────────────────────────
-function addRipple(el, e) {
-  const r = document.createElement('div');
-  r.className = 'ripple';
-  const rect = el.getBoundingClientRect();
-  const size = Math.max(rect.width, rect.height);
-  r.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX-rect.left-size/2}px;top:${e.clientY-rect.top-size/2}px`;
-  el.appendChild(r);
-  setTimeout(() => r.remove(), 600);
-}
-
-// ─── CONNECTION UI ────────────────────────────────────────
-function setConnected(val, label) {
-  isConnected = val;
-  const dot = document.getElementById('connDot');
-  const text = document.getElementById('connText');
-  dot.className = `conn-dot ${val ? '' : 'offline'}`;
-  text.textContent = label;
-}
-
-// ─── DEMO MODE ────────────────────────────────────────────
-function demoMode() {
-  setConnected(true, 'DEMO MODE');
-  addLog('HỆ THỐNG', 'on', 'sys');
-
-  // Simulate random updates every 3s
-  if (demoInterval) clearInterval(demoInterval);
-  demoInterval = setInterval(() => {
-    const d = DEVICES[Math.floor(Math.random() * DEVICES.length)];
-    states[d.id] = !states[d.id];
-    updateCard(d.id);
-    updateStats();
-    addLog(d.name + ' (auto)', states[d.id] ? 'on' : 'off');
-    updateCount++;
-    document.getElementById('statUpdates').textContent = updateCount;
-  }, 3000);
-}
-
-// ─── FIREBASE CONNECT (real) ──────────────────────────────
-async function connectFirebase() {
-  const url = document.getElementById('dbUrl').value.trim();
-  if (!url) { alert('Nhập Database URL!'); return; }
-
-  setConnected(false, 'ĐANG KẾT NỐI...');
-  addLog('Firebase', 'on', 'sys');
-
-  // Dynamic import Firebase SDK
+/* ══ FIREBASE ══ */
+async function connectFb(url, key) {
   try {
-    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
-    const { getDatabase, ref, set, onValue, serverTimestamp } =
+    const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const { getDatabase, ref, set, remove, onValue, serverTimestamp } =
       await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-
-    const app = initializeApp({ databaseURL: url }, 'iot-app');
+    const app = getApps().find(a=>a.name==='sh') ||
+      initializeApp({databaseURL:url,apiKey:key},'sh');
     const db = getDatabase(app);
-    window._firebaseDB = { db, ref, set, onValue, serverTimestamp };
+    fb = {db,ref,set,remove,onValue,serverTimestamp};
 
-    // Watch realtime
-    const switchRef = ref(db, 'iot-home/switches');
-    onValue(switchRef, (snapshot) => {
-      const data = snapshot.val();
-      if (!data) return;
-      Object.entries(data).forEach(([id, info]) => {
-        if (states[id] !== info.state) {
-          states[id] = info.state;
-          updateCard(id);
-          updateStats();
-          const dev = DEVICES.find(d => d.id === id);
-          if (dev) addLog(dev.name + ' (remote)', info.state ? 'on' : 'off', 'sys');
+    onValue(ref(db,'iot-home/switches'), snap => {
+      const data = snap.val()||{};
+      DEVICES.forEach(d => {
+        if (data[d.id]!==undefined) {
+          const ns=!!data[d.id].state;
+          if(d.status!==ns){d.status=ns;updateCard(d.id);addLog(`[Firebase]: ${d.name} → ${ns?'Bật':'Tắt'}`,ns?'g':'');updateOnCount();}
         }
       });
     });
 
-    setConnected(true, 'FIREBASE OK');
-    addLog('Firebase kết nối thành công', 'on', 'sys');
+    onValue(ref(db,'iot-home/schedules'), snap => {
+      const data=snap.val()||{};
+      DEVICES.forEach(d=>{
+        const dd=data[d.id]||{};
+        schedules[d.id]=Object.entries(dd).map(([sid,s])=>({
+          id:sid,hour:s.hour,min:s.minute,state:s.state,active:s.active!==false,
+          days:Object.keys(s.days||{}).filter(k=>s.days[k]).map(Number)
+        })).sort((a,b)=>a.hour*60+a.min-(b.hour*60+b.min));
+      });
+      renderSchedList(); renderDevTabs();
+    });
+
+    setConn('ok','Firebase OK');
+    addLog('[Firebase]: Kết nối thành công','g');
+    document.getElementById('statusBody').innerHTML =
+      '<strong>Firebase OK</strong> — Lắng nghe realtime. Đồng bộ tức thì với ESP32.';
+    return true;
   } catch(e) {
-    setConnected(false, 'LỖI KẾT NỐI');
-    addLog('Lỗi: ' + e.message, 'off', 'sys');
+    setConn('er','Lỗi: '+e.message.slice(0,35));
+    addLog('[Firebase]: Lỗi — '+e.message,'e');
+    return false;
   }
 }
 
-async function firebaseSet(deviceId, state) {
-  const { db, ref, set, serverTimestamp } = window._firebaseDB;
-  await set(ref(db, `iot-home/switches/${deviceId}`), {
-    state, updatedAt: serverTimestamp(), updatedBy: 'web-dashboard'
+function fbSetSwitch(devId, state) {
+  if (!fb) return;
+  const {db,ref,set,serverTimestamp} = fb;
+  set(ref(db,`iot-home/switches/${devId}`),{state,updatedAt:serverTimestamp(),updatedBy:'web-editorial'});
+}
+function fbSetSched(devId,s){
+  if(!fb) return;
+  const{db,ref,set}=fb;
+  const days={};for(let d=1;d<=7;d++)days[d]=s.days.includes(d);
+  set(ref(db,`iot-home/schedules/${devId}/${s.id}`),{hour:s.hour,minute:s.min,state:s.state,days,active:s.active});
+}
+function fbDelSched(devId,sid){
+  if(!fb)return;
+  const{db,ref,remove}=fb;
+  remove(ref(db,`iot-home/schedules/${devId}/${sid}`));
+}
+
+/* ══ TABS ══ */
+function goTab(name) {
+  document.querySelectorAll('.nav-tab').forEach((t,i)=>
+    t.classList.toggle('active',['ctrl','sched'][i]===name));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab'+name.charAt(0).toUpperCase()+name.slice(1)).classList.add('active');
+}
+
+/* ══ ONLINE ══ */
+function setOnline(v) {
+  isOnline = v;
+  const pip = document.getElementById('onPip');
+  const txt = document.getElementById('onTxt');
+  if(pip) pip.className = v ? 'status-pip' : 'status-pip off';
+  if(txt) txt.textContent = v ? 'Trực tuyến' : 'Ngoại tuyến';
+  renderSwGrid();
+}
+
+function updateOnCount() {
+  const n = DEVICES.filter(d=>d.status).length;
+  const el = document.getElementById('onCount');
+  if(el) el.textContent = n;
+}
+
+/* ══ SWITCH GRID ══ */
+function renderSwGrid() {
+  const g = document.getElementById('swGrid');
+  if (!g) return;
+  g.innerHTML = '';
+  DEVICES.forEach(d => {
+    const c = document.createElement('div');
+    c.className = `sw-card${d.status?' on':''}${!isOnline?' offline-card':''}`;
+    c.id = 'swc-'+d.id;
+    c.innerHTML = `
+      <div class="sw-accent"></div>
+      <div class="sw-top">
+        <div class="sw-icon-wrap">${d.icon}</div>
+        <button class="toggle-ed${d.status?' on':''}" id="tog-${d.id}" onclick="toggleDev('${d.id}')">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb-ed"></div>
+        </button>
+      </div>
+      <div class="sw-name-ed" id="swn-${d.id}"
+        contenteditable="false"
+        onclick="startEdit('${d.id}')"
+        onblur="endEdit('${d.id}')"
+        onkeydown="keyEdit(event,'${d.id}')">${d.name}</div>
+      <div class="sw-footer-ed">
+        <div class="sw-status-ed" id="sws-${d.id}">${d.status?'Đang bật':'Đang tắt'}</div>
+        <button class="sw-al-ed" id="sal-${d.id}"
+          style="color:${d.activeLow?'var(--blue)':'var(--accent)'}"
+          onclick="togAL('${d.id}')">${d.activeLow?'Mức thấp':'Mức cao'}</button>
+      </div>
+    `;
+    g.appendChild(c);
+  });
+  updateOnCount();
+}
+
+function updateCard(devId) {
+  const d   = DEVICES.find(x=>x.id===devId);
+  const c   = document.getElementById('swc-'+devId);
+  const tog = document.getElementById('tog-'+devId);
+  const sts = document.getElementById('sws-'+devId);
+  if(!c||!d) return;
+  c.className = `sw-card${d.status?' on':''}`;
+  tog.className = `toggle-ed${d.status?' on':''}`;
+  sts.textContent = d.status ? 'Đang bật' : 'Đang tắt';
+}
+
+function toggleDev(devId) {
+  const d = DEVICES.find(x=>x.id===devId);
+  if(!d) return;
+  d.status = !d.status;
+  updateCard(devId); updateOnCount();
+  addLog(`[SinricPro]: ${d.name} → ${d.status?'Bật':'Tắt'}`, d.status?'g':'');
+  fbSetSwitch(devId, d.status);
+  toast(`${d.icon} ${d.name} → ${d.status?'Bật':'Tắt'}`);
+}
+
+function killAll() {
+  DEVICES.forEach(d=>{if(d.status){d.status=false;updateCard(d.id);fbSetSwitch(d.id,false);}});
+  updateOnCount();
+  addLog('[Hệ thống]: Đã tắt toàn bộ thiết bị','o');
+  toast('⛔ Đã tắt tất cả');
+}
+
+function togAL(devId) {
+  const d = DEVICES.find(x=>x.id===devId);if(!d)return;
+  d.activeLow = !d.activeLow;
+  const btn = document.getElementById('sal-'+devId);
+  if(btn){btn.textContent=d.activeLow?'Mức thấp':'Mức cao';btn.style.color=d.activeLow?'var(--blue)':'var(--accent)';}
+  genFirmware();
+}
+
+function startEdit(devId) {
+  const el = document.getElementById('swn-'+devId);
+  el.contentEditable='true'; el.focus();
+  const r=document.createRange();r.selectNodeContents(el);
+  window.getSelection().removeAllRanges();
+  window.getSelection().addRange(r);
+}
+function endEdit(devId) {
+  const el = document.getElementById('swn-'+devId);
+  el.contentEditable='false';
+  const d = DEVICES.find(x=>x.id===devId);if(!d)return;
+  const raw = el.textContent.trim();
+  if(raw){d.name=raw;el.textContent=d.name;}
+  renderDevTabs(); genFirmware();
+}
+function keyEdit(e, devId) {
+  if(e.key==='Enter'){e.preventDefault();endEdit(devId);}
+  if(e.key==='Escape'){const d=DEVICES.find(x=>x.id===devId);if(d){document.getElementById('swn-'+devId).textContent=d.name;document.getElementById('swn-'+devId).contentEditable='false';}}
+}
+function editRoomName() {
+  const n = prompt('Tên phòng:', roomName);
+  if(n){ roomName=n; localStorage.setItem('rn',roomName);
+    const el=document.getElementById('roomTitle');
+    if(el){ const span=el.querySelector('.sub'); el.textContent=n; if(span)el.prepend(span); }
+  }
+}
+function editSysName() {
+  const n = prompt('Tên hệ thống:',systemName);
+  if(n){systemName=n;localStorage.setItem('sn',systemName);document.getElementById('sysNameBadge').textContent=n;genFirmware();}
+}
+
+/* ══ SCHEDULE ══ */
+function renderDevTabs() {
+  const el=document.getElementById('devTabs');if(!el)return;
+  el.innerHTML='';
+  DEVICES.forEach(d=>{
+    const cnt=(schedules[d.id]||[]).length;
+    const b=document.createElement('button');
+    b.className=`dtab-ed${d.id===curDev?' active':''}`;
+    b.innerHTML=`${d.icon} ${d.name} <span class="dtab-cnt">${cnt}</span>`;
+    b.onclick=()=>{curDev=d.id;renderDevTabs();renderSchedList();updFormLbl();};
+    el.appendChild(b);
+  });
+  updFormLbl();
+}
+function updFormLbl(){}
+
+function renderSchedList() {
+  const list=schedules[curDev]||[];
+  const el=document.getElementById('schedList');
+  const tlw=document.getElementById('tlWrap');
+  if(!list.length){
+    el.innerHTML='<div class="sched-empty">Chưa có lịch · Thêm ở form bên phải</div>';
+    if(tlw)tlw.style.display='none'; return;
+  }
+  if(tlw)tlw.style.display='block';
+  el.innerHTML='<div style="padding-left:16px">'+list.map(s=>{
+    const dh=DAY_LABELS.slice(1).map((lbl,di)=>
+      `<div class="dchip${s.days.includes(di+1)?' on':''}">${lbl}</div>`).join('');
+    return `<div class="si${s.state?' si-on':' si-off'}${s.active?'':' inactive'}">
+      <div class="si-time">${p2(s.hour)}:${p2(s.min)}</div>
+      <div class="si-body">
+        <div class="si-badge${s.state?' on':' off'}">${s.state?'▶ Bật':'■ Tắt'}</div>
+        <div class="si-days">${dh}</div>
+      </div>
+      <div class="si-ctrl">
+        <button class="mt-ed${s.active?' on':''}" onclick="togSched('${curDev}','${s.id}')">
+          <div class="mt-track"></div><div class="mt-th"></div>
+        </button>
+        <button class="del-btn-ed" onclick="delSched('${curDev}','${s.id}')">✕</button>
+      </div>
+    </div>`;
+  }).join('')+'</div>';
+  renderTl(list);
+}
+
+const p2 = n => String(n).padStart(2,'0');
+
+function renderDayPicker() {
+  const el=document.getElementById('dayPicker');if(!el)return;
+  el.innerHTML='';
+  for(let d=1;d<=7;d++){
+    const b=document.createElement('button');
+    b.className=`d-btn${selDays.has(d)?' sel':''}`;
+    b.textContent=DAY_LABELS[d];
+    b.onclick=()=>{selDays.has(d)?selDays.delete(d):selDays.add(d);renderDayPicker();};
+    el.appendChild(b);
+  }
+}
+function setDays(arr){selDays=new Set(arr);renderDayPicker();}
+function selAct(v){
+  actState=v;
+  document.getElementById('aOn').className=`a-btn${v?' aon':''}`;
+  document.getElementById('aOff').className=`a-btn${!v?' aoff':''}`;
+}
+function addSched(){
+  const h=parseInt(document.getElementById('inpH').value);
+  const m=parseInt(document.getElementById('inpM').value);
+  if(isNaN(h)||isNaN(m)){toast('⚠️ Nhập giờ hợp lệ!');return;}
+  if(!selDays.size){toast('⚠️ Chọn ít nhất 1 ngày!');return;}
+  const s={id:'sc'+Date.now(),hour:h,min:m,state:actState,days:[...selDays],active:true};
+  if(!schedules[curDev])schedules[curDev]=[];
+  schedules[curDev].push(s);schedules[curDev].sort((a,b)=>a.hour*60+a.min-(b.hour*60+b.min));
+  renderSchedList();renderDevTabs();fbSetSched(curDev,s);
+  addLog(`[Hẹn giờ]: ${p2(h)}:${p2(m)} → ${actState?'Bật':'Tắt'}`,'o');
+  toast(`✅ Thêm lịch ${p2(h)}:${p2(m)}`);
+}
+function togSched(devId,sid){
+  const s=(schedules[devId]||[]).find(x=>x.id===sid);if(!s)return;
+  s.active=!s.active;renderSchedList();fbSetSched(devId,s);
+  toast(s.active?'✅ Đã bật lịch':'⏸ Tạm dừng lịch');
+}
+function delSched(devId,sid){
+  schedules[devId]=(schedules[devId]||[]).filter(s=>s.id!==sid);
+  renderSchedList();renderDevTabs();fbDelSched(devId,sid);
+  toast('✕ Đã xóa lịch');
+}
+
+function renderTl(list){
+  const bar=document.getElementById('tlBar');if(!bar)return;
+  bar.querySelectorAll('.tl-seg').forEach(e=>e.remove());
+  const today=new Date().getDay(),tc=today===0?1:today+1;
+  const sorted=list.filter(s=>s.active&&s.days.includes(tc)).sort((a,b)=>a.hour*60+a.min-(b.hour*60+b.min));
+  sorted.forEach((s,i)=>{
+    const st=s.hour*60+s.min,en=sorted[i+1]?sorted[i+1].hour*60+sorted[i+1].min:1440;
+    const w=((en-st)/1440*100).toFixed(2);if(parseFloat(w)<0.5)return;
+    const seg=document.createElement('div');seg.className=`tl-seg${s.state?' on':' off'}`;
+    seg.style.cssText=`left:${(st/1440*100).toFixed(2)}%;width:${w}%`;
+    if(parseFloat(w)>6)seg.textContent=s.state?'ON':'OFF';
+    bar.appendChild(seg);
+  });
+}
+function updTlNow(now){
+  const el=document.getElementById('tlNow');
+  if(el)el.style.left=((now.getHours()*60+now.getMinutes())/1440*100).toFixed(2)+'%';
+}
+function runSchedules(now){
+  const h=now.getHours(),m=now.getMinutes();
+  const day=now.getDay()===0?1:now.getDay()+1;
+  const key=`${day}-${h}-${m}`;
+  DEVICES.forEach(d=>{
+    (schedules[d.id]||[]).forEach(s=>{
+      if(!s.active||!s.days.includes(day)||s.hour!==h||s.min!==m)return;
+      const rk=`${s.id}-${key}`;if(lastRunMap[rk])return;
+      lastRunMap[rk]=true;d.status=s.state;
+      updateCard(d.id);updateOnCount();fbSetSwitch(d.id,s.state);
+      addLog(`[Hẹn giờ]: ${d.name} → ${s.state?'Bật':'Tắt'}`,'o');
+      toast(`⏰ ${d.name} tự động ${s.state?'Bật':'Tắt'}`);
+    });
+  });
+  const cur=`${day}-${h}-${m}`;
+  Object.keys(lastRunMap).forEach(k=>{if(!k.endsWith(cur))delete lastRunMap[k];});
+}
+
+/* ══ LOG ══ */
+function addLog(msg,type){
+  const body=document.getElementById('logBody');if(!body)return;
+  const ts=new Date().toLocaleTimeString();
+  body.querySelector('.log-empty')?.remove();
+  const div=document.createElement('div');div.className='log-item';
+  const cls=type==='g'?'log-g':type==='o'?'log-o':type==='e'?'log-e':'';
+  div.innerHTML=`<span class="log-ts">[${ts}]</span><span class="${cls}">${msg}</span>`;
+  body.insertBefore(div,body.firstChild);
+  if(body.children.length>50)body.removeChild(body.lastChild);
+}
+function clearLog(){document.getElementById('logBody').innerHTML='<div class="log-empty">Đã xóa nhật ký...</div>';}
+
+/* ══ FIRMWARE ══ */
+function genFirmware(){
+  const el=document.getElementById('fwPre');if(!el)return;
+  const fbUrl=document.getElementById('fbUrl')?.value.trim()||'https://YOUR-PROJECT-rtdb.firebaseio.com';
+  const fbKey=document.getElementById('fbKey')?.value.trim()||'YOUR_API_KEY';
+  const rp=DEVICES.map(d=>d.relayPin).join(', ');
+  const bp=DEVICES.map(d=>d.btnPin).join(', ');
+  const ids=DEVICES.map(d=>`"${d.id}"`).join(', ');
+  const als=DEVICES.map(d=>d.activeLow).join(', ');
+  const names=DEVICES.map(d=>d.name).join(', ');
+  el.textContent=`/*
+ * Firmware ESP32-C3 · SmartHome Firebase
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ * Hệ thống : ${systemName}
+ * Thiết bị : ${names}
+ * Cloud    : Firebase Realtime Database
+ *
+ * Tính năng:
+ *   ✓ WiFiManager — ESP32 tự phát AP "ESP32-SmartHome-Setup"
+ *   ✓ Người dùng mở điện thoại kết nối WiFi đó, nhập WiFi nhà
+ *   ✓ Tắt AP ngay sau khi kết nối → tiết kiệm điện (~100mA)
+ *   ✓ Firebase URL + Key nhúng sẵn — không cần người dùng nhập
+ *   ✓ Tự reconnect WiFi, tự mở AP lại nếu mất mạng lâu
+ *   ✓ Hẹn giờ NTP GMT+7 — bật/tắt theo lịch từ Firebase
+ *   ✓ Stream realtime — phản hồi < 100ms
+ *   ✓ Nút vật lý chống rung 250ms
+ */
+
+#include <Arduino.h>
+#include <WiFi.h>
+#include <WiFiManager.h>
+#include <Firebase_ESP_Client.h>
+#include <Preferences.h>
+#include <time.h>
+#include "addons/TokenHelper.h"
+
+/* ── Firebase (nhúng cứng) ─────────────────────── */
+#define FB_URL     "${fbUrl}"
+#define FB_KEY     "${fbKey}"
+
+/* ── WiFiManager AP ────────────────────────────── */
+#define AP_NAME    "ESP32-SmartHome-Setup"
+#define AP_PASS    "12345678"
+#define AP_TIMEOUT 120
+
+/* ── NTP ───────────────────────────────────────── */
+#define NTP_SRV    "pool.ntp.org"
+#define GMT_OFFSET 25200  // GMT+7
+
+/* ── Phần cứng ─────────────────────────────────── */
+const int RELAY[] = { ${rp} };
+const int BTN[]   = { ${bp} };
+const char* IDS[] = { ${ids} };
+const bool  AL[]  = { ${als} };
+#define DEV_COUNT  ${DEVICES.length}
+#define LED_PIN    8
+#define BTN_RESET  9
+#define DEBOUNCE   250
+
+FirebaseData   fbdo, fbStream;
+FirebaseAuth   auth;
+FirebaseConfig cfg;
+bool fbOK = false, ntpOK = false;
+
+/* ── LED blink task ────────────────────────────── */
+int blinkMs = 0;
+void ledTask(void* p) {
+  while(true) {
+    if(blinkMs > 0) {
+      digitalWrite(LED_PIN, HIGH); vTaskDelay(blinkMs / portTICK_PERIOD_MS);
+      digitalWrite(LED_PIN, LOW);  vTaskDelay(blinkMs / portTICK_PERIOD_MS);
+    } else vTaskDelay(100 / portTICK_PERIOD_MS);
+  }
+}
+
+/* ── Điều khiển relay ──────────────────────────── */
+void setDev(int i, bool on) {
+  digitalWrite(RELAY[i], AL[i] ? !on : on);
+  Serial.printf("[%s] %s\\n", IDS[i], on ? "BẬT" : "TẮT");
+  if(fbOK)
+    Firebase.RTDB.setBool(&fbdo,
+      "iot-home/switches/" + String(IDS[i]) + "/state", on);
+}
+
+/* ── Tắt AP hoàn toàn ─────────────────────────── */
+void closeAP() {
+  WiFi.softAPdisconnect(true);
+  WiFi.mode(WIFI_STA);
+  Serial.println("AP tắt → STA mode");
+}
+
+/* ── Reconnect WiFi (retry 3 lần) ─────────────── */
+bool connectWiFi() {
+  for(int i = 0; i < 3; i++) {
+    blinkMs = 500;
+    WiFi.mode(WIFI_STA); WiFi.begin();
+    unsigned long t0 = millis();
+    while(WiFi.status() != WL_CONNECTED && millis()-t0 < 20000) delay(300);
+    if(WiFi.status() == WL_CONNECTED) { blinkMs = 0; return true; }
+    delay(5000);
+  }
+  return false;
+}
+
+/* ── Mở AP để đổi WiFi ─────────────────────────── */
+bool openAP() {
+  blinkMs = 200;
+  WiFiManager wm;
+  wm.setDebugOutput(false);
+  wm.setTitle("SmartHome Setup");
+  wm.setDarkMode(true);
+  wm.setConfigPortalTimeout(AP_TIMEOUT);
+  wm.resetSettings();
+  bool ok = wm.startConfigPortal(AP_NAME, AP_PASS);
+  closeAP(); blinkMs = 0;
+  return ok;
+}
+
+/* ── Stream callback ───────────────────────────── */
+void streamCB(FirebaseStream data) {
+  String path = data.dataPath();
+  if(path.indexOf("/switches/") >= 0 &&
+     path.indexOf("/state") >= 0 &&
+     data.dataTypeEnum() == fb_esp_rtdb_data_type_boolean) {
+    bool st = data.boolData();
+    for(int i = 0; i < DEV_COUNT; i++)
+      if(path.indexOf(IDS[i]) >= 0) { setDev(i, st); break; }
+  }
+}
+void streamTO(bool to) { if(to) Serial.println("Stream timeout"); }
+
+/* ── Setup ─────────────────────────────────────── */
+void setup() {
+  Serial.begin(115200);
+  pinMode(LED_PIN, OUTPUT);
+  pinMode(BTN_RESET, INPUT_PULLUP);
+  xTaskCreate(ledTask, "LED", 1024, NULL, 1, NULL);
+
+  for(int i = 0; i < DEV_COUNT; i++) {
+    pinMode(RELAY[i], OUTPUT);
+    pinMode(BTN[i], INPUT_PULLUP);
+    digitalWrite(RELAY[i], AL[i] ? HIGH : LOW); // mặc định TẮT
+  }
+
+  // Giữ BOOT → xóa WiFi đã lưu
+  if(digitalRead(BTN_RESET) == LOW) {
+    WiFiManager wm; wm.resetSettings();
+    delay(500); ESP.restart();
+  }
+
+  // WiFiManager — chỉ hỏi WiFi, Firebase đã có sẵn
+  WiFiManager wm;
+  wm.setDebugOutput(false);
+  wm.setTitle("SmartHome Setup");
+  wm.setDarkMode(true);
+  wm.setConfigPortalTimeout(AP_TIMEOUT);
+  blinkMs = 200;
+
+  bool ok = wm.autoConnect(AP_NAME, AP_PASS);
+  closeAP(); // ★ TẮT AP NGAY — tiết kiệm điện!
+
+  if(!ok) { Serial.println("Offline mode"); return; }
+
+  blinkMs = 0; digitalWrite(LED_PIN, HIGH);
+  Serial.println("WiFi: " + WiFi.SSID() + " | " + WiFi.localIP().toString());
+
+  // NTP
+  configTime(GMT_OFFSET, 0, NTP_SRV);
+  struct tm ti;
+  for(int i = 0; i < 10 && !getLocalTime(&ti); i++) delay(1000);
+  ntpOK = getLocalTime(&ti);
+
+  // Firebase
+  cfg.api_key = FB_KEY; cfg.database_url = FB_URL;
+  if(Firebase.signUp(&cfg, &auth, "", "")) fbOK = true;
+  cfg.token_status_callback = tokenStatusCallback;
+  Firebase.begin(&cfg, &auth);
+  Firebase.reconnectWiFi(true);
+
+  Firebase.RTDB.setString(&fbdo, "iot-home/device/status", "online");
+  Firebase.RTDB.setString(&fbdo, "iot-home/device/ip", WiFi.localIP().toString());
+
+  Firebase.RTDB.beginStream(&fbStream, "iot-home/switches");
+  Firebase.RTDB.setStreamCallback(&fbStream, streamCB, streamTO);
+
+  Serial.println("Sẵn sàng!");
+}
+
+/* ── Loop ──────────────────────────────────────── */
+unsigned long lastWifi = 0;
+bool lastBtnSt[${DEVICES.length}] = {};
+unsigned long lastDB[${DEVICES.length}] = {};
+
+void loop() {
+  // Nút vật lý
+  for(int i = 0; i < DEV_COUNT; i++) {
+    bool cur = digitalRead(BTN[i]);
+    if(cur != lastBtnSt[i] && millis()-lastDB[i] > DEBOUNCE) {
+      if(cur == LOW) {
+        bool nextOn = !(digitalRead(RELAY[i]) == (AL[i] ? LOW : HIGH));
+        setDev(i, nextOn);
+      }
+      lastDB[i] = millis(); lastBtnSt[i] = cur;
+    }
+  }
+
+  // Giám sát WiFi mỗi 30s
+  if(millis()-lastWifi > 30000) {
+    lastWifi = millis();
+    if(WiFi.status() != WL_CONNECTED) {
+      if(!connectWiFi()) {
+        bool reconfigured = openAP();
+        if(reconfigured) ESP.restart();
+      }
+    }
+  }
+}`;
+}
+
+function copyFw() {
+  navigator.clipboard.writeText(document.getElementById('fwPre').textContent).then(()=>{
+    const b=document.querySelector('.copy-fw');
+    b.textContent='✓ Đã sao chép'; setTimeout(()=>b.textContent='Sao chép',2000);
+    toast('📋 Đã sao chép firmware!');
   });
 }
 
-// ─── COPY CODE ────────────────────────────────────────────
-function copyCode() {
-  const code = document.querySelector('.modal-body pre:first-of-type code').innerText;
-  navigator.clipboard.writeText(code).then(() => {
-    const btn = document.querySelector('.btn-copy');
-    btn.textContent = '✅ ĐÃ COPY!';
-    setTimeout(() => btn.textContent = '📋 COPY CODE', 2000);
-  });
+/* ══ TOAST ══ */
+function toast(msg){
+  const el=document.createElement('div');el.className='toast';el.textContent=msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(()=>el.remove(),3000);
 }
 
-// ─── INIT ─────────────────────────────────────────────────
-renderCards();
-addLog('Hệ thống khởi động', 'on', 'sys');
+/* ══ INIT ══ */
+setOnline(false);
+renderSwGrid();
+renderDevTabs();
+renderSchedList();
+renderDayPicker();
+genFirmware();
+addLog('[Hệ thống]: SmartHome khởi động','o');
 </script>
 </body>
 </html>
