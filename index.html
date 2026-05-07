@@ -3,26 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ESP32-C3 Smart Home AI</title>
+    <title>Smart AI Home - ESP32-C3</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; padding-bottom: 90px; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
         .tab-content { display: none; }
-        .tab-content.active { display: block; animation: fadeIn 0.3s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .nav-item.active { color: #2563eb; }
-        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
-        .ai-glow { box-shadow: 0 0 20px rgba(37, 99, 235, 0.2); border: 1px solid rgba(37, 99, 235, 0.1); }
+        .tab-content.active { display: block; animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.3); }
+        .ai-glow { box-shadow: 0 0 20px rgba(37, 99, 235, 0.1); border: 1px solid rgba(37, 99, 235, 0.1); }
+        .day-btn.active { background-color: #2563eb; color: white; border-color: #2563eb; }
+        .nav-item.active { color: #2563eb; transform: translateY(-3px); }
+        .nav-item { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     </style>
 </head>
 <body class="p-4 flex flex-col items-center">
 
+    <!-- <!-- STREAMING_CHUNK: Tiêu đề và Trạng thái Trực tuyến --> -->
     <div class="w-full max-w-md mb-6 flex justify-between items-end px-1">
         <div>
             <h1 class="text-2xl font-black text-slate-900 leading-tight">Smart AI Home</h1>
-            <p class="text-slate-400 text-[10px] font-bold tracking-widest uppercase">ESP32-C3 • 4 Kênh GPIO</p>
+            <p class="text-slate-400 text-[10px] font-bold tracking-widest uppercase">ESP32-C3 • Gemini AI Inside</p>
         </div>
         <div id="status-badge" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white text-slate-400 text-[9px] font-black border border-slate-200 shadow-sm transition-all duration-500">
             <div id="status-dot" class="w-1.5 h-1.5 rounded-full bg-slate-300"></div> 
@@ -30,82 +33,145 @@
         </div>
     </div>
 
+    <!-- <!-- STREAMING_CHUNK: Nội dung Tab ĐIỀU KHIỂN (Dashboard & AI) --> -->
     <main id="tab-control" class="tab-content active w-full max-w-md space-y-4">
-        <div class="glass ai-glow p-4 rounded-[2rem] mb-4">
+        <!-- AI Assistant Card -->
+        <div class="glass ai-glow p-4 rounded-[2rem] relative overflow-hidden">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white shrink-0 shadow-lg">
+                <div id="ai-icon" class="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center text-white shrink-0 shadow-lg">
                     <i class="fa-solid fa-wand-magic-sparkles"></i>
                 </div>
-                <input type="text" id="ai-input" placeholder="Hỏi AI... (VD: Bật đèn 1)" class="flex-1 bg-transparent border-none outline-none text-xs font-semibold text-slate-700">
-                <button id="btn-ai-send" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+                <div class="flex-1">
+                    <input type="text" id="ai-input" placeholder="Hỏi Gemini... (Ví dụ: Bật đèn 1)" class="w-full bg-transparent border-none outline-none text-xs font-semibold text-slate-700">
+                    <p id="ai-response" class="hidden text-[10px] text-blue-600 mt-1 font-medium italic"></p>
+                </div>
+                <button id="btn-ai-send" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 transition-transform active:scale-90">
                     <i class="fa-solid fa-paper-plane text-[10px]"></i>
                 </button>
             </div>
         </div>
 
-        <div id="device-list" class="grid grid-cols-4 gap-2">
-            <!-- Sẽ được populate bởi JS -->
-            <div class="animate-pulse bg-white h-24 rounded-3xl"></div>
-            <div class="animate-pulse bg-white h-24 rounded-3xl"></div>
-            <div class="animate-pulse bg-white h-24 rounded-3xl"></div>
-            <div class="animate-pulse bg-white h-24 rounded-3xl"></div>
+        <!-- 4-Device Grid (1 Row) -->
+        <div id="device-grid" class="grid grid-cols-4 gap-2">
+            <!-- Rendered by JS -->
         </div>
     </main>
 
-    <section id="tab-schedule" class="tab-content w-full max-w-md">
-        <div class="flex justify-between items-center mb-4 px-1">
-            <h2 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Hẹn giờ tự động</h2>
-            <button class="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black shadow-lg">THÊM LỊCH</button>
+    <!-- <!-- STREAMING_CHUNK: Nội dung Tab HẸN GIỜ (Schedules) --> -->
+    <section id="tab-schedule" class="tab-content w-full max-w-md space-y-4">
+        <div class="flex justify-between items-center px-1">
+            <h2 class="font-black text-slate-800 text-xs uppercase tracking-widest">Lịch trình tự động</h2>
+            <button onclick="window.openScheduleModal()" class="px-4 py-2 bg-blue-600 text-white rounded-full text-[9px] font-black uppercase shadow-lg shadow-blue-200">Thêm mới</button>
         </div>
         <div id="schedule-list" class="space-y-2">
-            <div class="text-center py-10 text-slate-300 text-xs italic">Đang tải lịch trình...</div>
+            <!-- Schedule items -->
         </div>
     </section>
 
+    <!-- <!-- STREAMING_CHUNK: Nội dung Tab CẤU HÌNH (Logs & Reset) --> -->
     <section id="tab-settings" class="tab-content w-full max-w-md space-y-4">
         <div class="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
             <h3 class="font-bold text-slate-800 text-xs uppercase flex items-center gap-2">
-                <i class="fa-solid fa-microchip text-indigo-500"></i> Quản lý thiết bị
+                <i class="fa-solid fa-microchip text-indigo-500"></i> Quản lý hệ thống
             </h3>
-            <button id="btn-show-code" class="w-full py-3 bg-indigo-50 text-indigo-600 rounded-xl font-black text-[10px] border border-indigo-100">XEM MÃ NGUỒN C++</button>
-            <button id="btn-reset-wifi" class="w-full py-3 bg-rose-50 text-rose-600 rounded-xl font-black text-[10px] border border-rose-100 uppercase">Cấu hình lại WiFi</button>
+            <button onclick="window.showCodeModal()" class="w-full py-3 bg-indigo-50 text-indigo-600 rounded-xl font-black text-[10px] border border-indigo-100 uppercase">Xem mã nguồn C++</button>
+            <button id="btn-reset-wifi" class="w-full py-3 bg-rose-50 text-rose-600 rounded-xl font-black text-[10px] border border-rose-100 uppercase tracking-widest">Cấu hình lại WiFi</button>
         </div>
-
-        <div id="log-box" class="h-40 overflow-y-auto bg-slate-900 rounded-[1.5rem] p-4 text-[9px] font-mono space-y-1 text-slate-300 shadow-inner border border-slate-800">
-            <div class="text-blue-400">> Khởi tạo hệ thống...</div>
+        <div id="log-box" class="h-48 overflow-y-auto bg-slate-900 rounded-[1.5rem] p-4 text-[9px] font-mono space-y-1 text-slate-300 shadow-inner border border-slate-800">
+            <div class="text-blue-400">> AI Smarthome System Online...</div>
         </div>
     </section>
 
-    <div id="code-modal" class="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-[100] hidden flex flex-col p-4">
-        <div class="flex justify-between items-center mb-4 text-white">
-            <h2 class="font-black text-xs uppercase">ESP32-C3 Full Source Code</h2>
-            <div class="flex gap-2">
-                <button id="btn-copy-code" class="px-4 py-2 bg-blue-600 rounded-xl text-[10px] font-bold">SAO CHÉP</button>
-                <button id="btn-close-code" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"><i class="fa-solid fa-xmark"></i></button>
+    <!-- <!-- STREAMING_CHUNK: Modal Hẹn Giờ --> -->
+    <div id="schedule-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] hidden items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-6 shadow-2xl space-y-4">
+            <h3 class="font-black text-slate-800 text-sm uppercase">Thiết lập hẹn giờ</h3>
+            <div class="space-y-3">
+                <div class="flex p-1 bg-slate-100 rounded-2xl">
+                    <button id="mode-once" class="flex-1 py-2 text-[10px] font-black rounded-xl bg-white shadow-sm text-blue-600 uppercase">Một lần</button>
+                    <button id="mode-weekly" class="flex-1 py-2 text-[10px] font-black rounded-xl text-slate-400 uppercase">Hàng tuần</button>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-bold text-slate-400 uppercase ml-2">Thiết bị</label>
+                        <select id="sch-device" class="w-full p-3 bg-slate-50 rounded-xl border-none text-xs font-bold text-slate-700 outline-none">
+                            <option value="relay1">Thiết bị 1</option>
+                            <option value="relay2">Thiết bị 2</option>
+                            <option value="relay3">Thiết bị 3</option>
+                            <option value="relay4">Thiết bị 4</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-bold text-slate-400 uppercase ml-2">Giờ</label>
+                        <input type="time" id="sch-time" class="w-full p-3 bg-slate-50 rounded-xl border-none text-xs font-bold text-slate-700 outline-none">
+                    </div>
+                </div>
+                <div id="date-picker-container" class="space-y-1">
+                    <label class="text-[9px] font-bold text-slate-400 uppercase ml-2">Ngày thực hiện</label>
+                    <input type="date" id="sch-date" class="w-full p-3 bg-slate-50 rounded-xl border-none text-xs font-bold text-slate-700 outline-none">
+                </div>
+                <div id="week-picker-container" class="hidden space-y-2">
+                    <label class="text-[9px] font-bold text-slate-400 uppercase ml-2">Lặp lại thứ</label>
+                    <div class="flex justify-between">
+                        <button data-day="1" class="day-btn w-8 h-8 rounded-full border border-slate-200 text-[9px] font-bold">T2</button>
+                        <button data-day="2" class="day-btn w-8 h-8 rounded-full border border-slate-200 text-[9px] font-bold">T3</button>
+                        <button data-day="3" class="day-btn w-8 h-8 rounded-full border border-slate-200 text-[9px] font-bold">T4</button>
+                        <button data-day="4" class="day-btn w-8 h-8 rounded-full border border-slate-200 text-[9px] font-bold">T5</button>
+                        <button data-day="5" class="day-btn w-8 h-8 rounded-full border border-slate-200 text-[9px] font-bold">T6</button>
+                        <button data-day="6" class="day-btn w-8 h-8 rounded-full border border-slate-200 text-[9px] font-bold">T7</button>
+                        <button data-day="0" class="day-btn w-8 h-8 rounded-full border border-slate-200 text-[9px] font-bold text-rose-500">CN</button>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button id="sch-action-on" class="flex-1 py-3 bg-blue-50 text-blue-600 rounded-xl font-black text-[10px] border border-blue-200 uppercase">Bật</button>
+                    <button id="sch-action-off" class="flex-1 py-3 bg-slate-50 text-slate-400 rounded-xl font-black text-[10px] border border-slate-200 uppercase">Tắt</button>
+                </div>
+            </div>
+            <div class="flex gap-3 pt-2">
+                <button onclick="window.closeScheduleModal()" class="flex-1 py-3 bg-slate-100 text-slate-500 rounded-xl font-black text-[10px] uppercase">Hủy</button>
+                <button id="btn-save-schedule" class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-black text-[10px] uppercase shadow-lg shadow-blue-200">Lưu lại</button>
             </div>
         </div>
-        <pre id="code-display" class="flex-1 bg-slate-950 border border-white/10 rounded-3xl p-4 overflow-auto text-emerald-400 text-[10px] font-mono leading-relaxed"></pre>
     </div>
 
-    <nav class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-100 flex justify-around items-center py-3 px-6 z-[80]">
+    <!-- <!-- STREAMING_CHUNK: Modal Xem Code --> -->
+    <div id="code-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] hidden items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-[2.5rem] flex flex-col max-h-[80vh] overflow-hidden shadow-2xl">
+            <div class="p-5 border-b flex justify-between items-center">
+                <span class="font-black text-xs uppercase text-slate-500">Mã nguồn Arduino (C++)</span>
+                <button onclick="window.closeCodeModal()" class="text-slate-400"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-5 bg-slate-50">
+                <pre id="cpp-code-block" class="text-[9px] font-mono text-slate-700 whitespace-pre-wrap"></pre>
+            </div>
+            <div class="p-5 bg-white border-t">
+                <button onclick="window.copyCode()" class="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl shadow-blue-200">Sao chép mã</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- <!-- STREAMING_CHUNK: Bottom Navigation --> -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-100 flex justify-around items-center py-3 px-6 z-[150]">
         <button onclick="window.showTab('control')" id="nav-control" class="nav-item active flex flex-col items-center gap-1">
             <i class="fa-solid fa-grip-vertical text-lg"></i>
-            <span class="text-[8px] font-black uppercase tracking-widest">Thiết bị</span>
+            <span class="text-[8px] font-black uppercase tracking-widest">Điều khiển</span>
         </button>
         <button onclick="window.showTab('schedule')" id="nav-schedule" class="nav-item flex flex-col items-center gap-1 text-slate-400">
-            <i class="fa-solid fa-calendar-day text-lg"></i>
+            <i class="fa-solid fa-calendar-check text-lg"></i>
             <span class="text-[8px] font-black uppercase tracking-widest">Hẹn giờ</span>
         </button>
         <button onclick="window.showTab('settings')" id="nav-settings" class="nav-item flex flex-col items-center gap-1 text-slate-400">
-            <i class="fa-solid fa-sliders text-lg"></i>
+            <i class="fa-solid fa-gear text-lg"></i>
             <span class="text-[8px] font-black uppercase tracking-widest">Cấu hình</span>
         </button>
     </nav>
 
+    <!-- <!-- STREAMING_CHUNK: Logic Firebase & AI --> -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, doc, setDoc, updateDoc, onSnapshot, collection, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, updateDoc, onSnapshot, collection, addDoc, query, orderBy, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBSJwS5xFjXAczjBmVx1gvhMCiZFqKHFYU",
@@ -122,6 +188,28 @@
         const appId = "gemini-55ab8";
         const devIds = ["relay1", "relay2", "relay3", "relay4"];
 
+        const GEMINI_KEY = "AIzaSyD4aWCL72i5x6V4W9YkKdx_sg06jRYxzvU";
+        const genAI = new GoogleGenerativeAI(GEMINI_KEY);
+        const aiModel = genAI.getGenerativeModel({ 
+            model: "gemini-1.5-flash",
+            systemInstruction: "Bạn là quản gia Smarthome. Bạn điều khiển 4 relay (relay1, relay2, relay3, relay4). Luôn dùng tool 'control_device' khi người dùng muốn bật/tắt thiết bị. Trả lời cực kỳ ngắn gọn."
+        });
+
+        // UI State
+        let scheduleMode = 'once';
+        let selectedDays = [];
+        let scheduleAction = true;
+
+        const addLog = (msg, type = "info") => {
+            const box = document.getElementById('log-box');
+            if(!box) return;
+            const entry = document.createElement('div');
+            entry.className = type === "success" ? "text-emerald-400" : type === "error" ? "text-rose-400" : type === "ai" ? "text-blue-400" : "text-slate-400";
+            entry.innerHTML = `<span class="text-slate-600 font-normal">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
+            box.appendChild(entry);
+            box.scrollTop = box.scrollHeight;
+        };
+
         window.showTab = (id) => {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(n => {
@@ -129,118 +217,236 @@
                 n.classList.add('text-slate-400');
             });
             document.getElementById(`tab-${id}`).classList.add('active');
-            const navBtn = document.getElementById(`nav-${id}`);
-            navBtn.classList.add('active');
-            navBtn.classList.remove('text-slate-400');
+            document.getElementById(`nav-${id}`).classList.add('active');
+            document.getElementById(`nav-${id}`).classList.remove('text-slate-400');
         };
 
-        const addLog = (msg, type = "info") => {
-            const box = document.getElementById('log-box');
-            const entry = document.createElement('div');
-            entry.className = type === "success" ? "text-emerald-400" : type === "error" ? "text-rose-400" : "text-slate-400";
-            entry.innerHTML = `<span class="text-slate-600">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
-            box.appendChild(entry);
-            box.scrollTop = box.scrollHeight;
-        };
+        /* AI Logic */
+        async function runAI(prompt) {
+            const aiIcon = document.getElementById('ai-icon');
+            const aiRes = document.getElementById('ai-response');
+            aiIcon.classList.add('animate-pulse');
+            aiRes.innerText = "Gemini đang xử lý...";
+            aiRes.classList.remove('hidden');
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                addLog("Xác thực Firebase thành công.", "success");
-                initApp();
-            } else {
-                signInAnonymously(auth).catch(err => addLog("Auth Error: " + err.message, "error"));
-            }
-        });
-
-        function initApp() {
-            const list = document.getElementById('device-list');
-            list.innerHTML = ''; 
-
-            devIds.forEach((id, index) => {
-                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'devices', id);
-                const card = document.createElement('div');
-                card.className = "bg-white p-2 py-4 rounded-[1.5rem] flex flex-col items-center gap-2 border border-slate-100 shadow-sm relative overflow-hidden";
-                card.innerHTML = `
-                    <div id="icon-${id}" class="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center text-slate-300 transition-all duration-300"><i class="fa-solid fa-bolt text-[10px]"></i></div>
-                    <span class="font-black text-slate-700 text-[8px] uppercase tracking-tighter text-center">Thiết bị ${index+1}</span>
-                    <button id="toggle-${id}" class="w-full py-2 rounded-xl bg-slate-50 relative overflow-hidden border border-slate-100">
-                        <div id="bg-fill-${id}" class="absolute inset-0 bg-blue-600 translate-y-full transition-transform duration-500"></div>
-                        <span id="label-${id}" class="relative z-10 text-[8px] font-black text-slate-400 uppercase">Tắt</span>
-                    </button>
-                `;
-                list.appendChild(card);
-
-                onSnapshot(docRef, (snap) => {
-                    if(!snap.exists()) return;
-                    const status = snap.data().status;
-                    const fill = document.getElementById(`bg-fill-${id}`);
-                    const label = document.getElementById(`label-${id}`);
-                    const icon = document.getElementById(`icon-${id}`);
-                    
-                    fill.style.transform = status ? 'translateY(0)' : 'translateY(100%)';
-                    label.innerText = status ? 'Bật' : 'Tắt';
-                    label.className = `relative z-10 text-[8px] font-black uppercase ${status ? 'text-white' : 'text-slate-400'}`;
-                    icon.className = `w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-500 ${status ? 'bg-blue-100 text-blue-600 scale-110 shadow-lg shadow-blue-200' : 'bg-slate-50 text-slate-300'}`;
-
-                    document.getElementById(`toggle-${id}`).onclick = () => {
-                        updateDoc(docRef, { status: !status });
-                        addLog(`TB ${index+1} -> ${!status ? 'BẬT' : 'TẮT'}`, "info");
-                    };
-                });
-            });
-            trackConnection();
+            try {
+                const tools = [{
+                    functionDeclarations: [{
+                        name: "control_device",
+                        description: "Bật/Tắt một thiết bị relay",
+                        parameters: {
+                            type: "object",
+                            properties: {
+                                id: { type: "string", enum: ["relay1", "relay2", "relay3", "relay4"] },
+                                status: { type: "boolean" }
+                            },
+                            required: ["id", "status"]
+                        }
+                    }]
+                }];
+                const chat = aiModel.startChat({ tools });
+                const result = await chat.sendMessage(prompt);
+                const calls = result.response.functionCalls();
+                if (calls) {
+                    for (const call of calls) {
+                        if (call.name === "control_device") {
+                            const { id, status } = call.args;
+                            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'devices', id), { status });
+                            addLog(`AI: Đã ${status ? 'Bật' : 'Tắt'} ${id}`, "ai");
+                        }
+                    }
+                    aiRes.innerText = "Đã thực hiện xong!";
+                } else {
+                    aiRes.innerText = result.response.text();
+                }
+            } catch (e) { aiRes.innerText = "Lỗi AI!"; }
+            finally { aiIcon.classList.remove('animate-pulse'); }
         }
 
-        function trackConnection() {
-            const dot = document.getElementById('status-dot');
-            const text = document.getElementById('status-text');
-            const badge = document.getElementById('status-badge');
-            
+        document.getElementById('btn-ai-send').onclick = () => {
+            const input = document.getElementById('ai-input');
+            if(input.value.trim()) { runAI(input.value); input.value = ''; }
+        };
+
+        /* Scheduling Logic */
+        window.openScheduleModal = () => document.getElementById('schedule-modal').classList.remove('hidden');
+        window.closeScheduleModal = () => document.getElementById('schedule-modal').classList.add('hidden');
+
+        document.getElementById('mode-once').onclick = () => {
+            scheduleMode = 'once';
+            document.getElementById('mode-once').className = "flex-1 py-2 text-[10px] font-black rounded-xl bg-white shadow-sm text-blue-600 uppercase";
+            document.getElementById('mode-weekly').className = "flex-1 py-2 text-[10px] font-black rounded-xl text-slate-400 uppercase";
+            document.getElementById('date-picker-container').classList.remove('hidden');
+            document.getElementById('week-picker-container').classList.add('hidden');
+        };
+
+        document.getElementById('mode-weekly').onclick = () => {
+            scheduleMode = 'weekly';
+            document.getElementById('mode-weekly').className = "flex-1 py-2 text-[10px] font-black rounded-xl bg-white shadow-sm text-blue-600 uppercase";
+            document.getElementById('mode-once').className = "flex-1 py-2 text-[10px] font-black rounded-xl text-slate-400 uppercase";
+            document.getElementById('date-picker-container').classList.add('hidden');
+            document.getElementById('week-picker-container').classList.remove('hidden');
+        };
+
+        document.querySelectorAll('.day-btn').forEach(btn => {
+            btn.onclick = () => {
+                const day = parseInt(btn.dataset.day);
+                if(selectedDays.includes(day)) {
+                    selectedDays = selectedDays.filter(d => d !== day);
+                    btn.classList.remove('active');
+                } else {
+                    selectedDays.push(day);
+                    btn.classList.add('active');
+                }
+            };
+        });
+
+        document.getElementById('sch-action-on').onclick = () => {
+            scheduleAction = true;
+            document.getElementById('sch-action-on').className = "flex-1 py-3 bg-blue-50 text-blue-600 rounded-xl font-black text-[10px] border border-blue-200 uppercase";
+            document.getElementById('sch-action-off').className = "flex-1 py-3 bg-slate-50 text-slate-400 rounded-xl font-black text-[10px] border border-slate-200 uppercase";
+        };
+
+        document.getElementById('sch-action-off').onclick = () => {
+            scheduleAction = false;
+            document.getElementById('sch-action-off').className = "flex-1 py-3 bg-rose-50 text-rose-600 rounded-xl font-black text-[10px] border border-rose-200 uppercase";
+            document.getElementById('sch-action-on').className = "flex-1 py-3 bg-slate-50 text-slate-400 rounded-xl font-black text-[10px] border border-slate-200 uppercase";
+        };
+
+        document.getElementById('btn-save-schedule').onclick = async () => {
+            const devId = document.getElementById('sch-device').value;
+            const time = document.getElementById('sch-time').value;
+            const date = document.getElementById('sch-date').value;
+            if(!time) return;
+            try {
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'schedules'), {
+                    deviceId: devId, time, action: scheduleAction, type: scheduleMode,
+                    date: scheduleMode === 'once' ? date : null,
+                    days: scheduleMode === 'weekly' ? selectedDays : null,
+                    createdAt: Date.now()
+                });
+                window.closeScheduleModal();
+                addLog("Đã thêm lịch trình mới.", "success");
+            } catch(e) { addLog("Lỗi lưu lịch!", "error"); }
+        };
+
+        window.deleteSch = (id) => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'schedules', id));
+
+        /* Device Control Logic */
+        function initDevices() {
+            const grid = document.getElementById('device-grid');
+            grid.innerHTML = '';
+            devIds.forEach((id, idx) => {
+                const card = document.createElement('div');
+                card.className = "bg-white p-3 rounded-[1.5rem] border border-slate-100 shadow-sm flex flex-col items-center gap-2";
+                card.innerHTML = `
+                    <div id="icon-${id}" class="w-8 h-8 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-300 transition-all">
+                        <i class="fa-solid fa-bolt text-[10px]"></i>
+                    </div>
+                    <span class="text-[8px] font-black text-slate-500 uppercase tracking-tighter">TB ${idx+1}</span>
+                    <button id="btn-${id}" class="w-full py-3 rounded-xl bg-slate-50 border border-slate-100 font-black text-[8px] text-slate-400">OFF</button>
+                `;
+                grid.appendChild(card);
+
+                onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'devices', id), (snap) => {
+                    if(!snap.exists()) return;
+                    const st = snap.data().status;
+                    const btn = document.getElementById(`btn-${id}`);
+                    const icon = document.getElementById(`icon-${id}`);
+                    btn.innerText = st ? 'ON' : 'OFF';
+                    btn.className = `w-full py-3 rounded-xl font-black text-[8px] transition-all ${st ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-slate-50 text-slate-400 border border-slate-100'}`;
+                    icon.className = `w-8 h-8 rounded-2xl flex items-center justify-center transition-all ${st ? 'bg-blue-50 text-blue-600 scale-110 shadow-sm' : 'bg-slate-50 text-slate-300'}`;
+                    btn.onclick = () => updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'devices', id), { status: !st });
+                });
+            });
+        }
+
+        function trackStatus() {
             onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'system', 'status'), (snap) => {
-                if (snap.exists()) {
-                    const lastSeen = snap.data().last_seen || 0;
-                    const diff = Date.now() - lastSeen;
-                    if (diff < 45000) {
-                        dot.className = "w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse";
-                        text.innerText = "TRỰC TUYẾN";
-                        badge.className = "flex items-center gap-2 px-3 py-1.5 rounded-full bg-white text-emerald-600 text-[9px] font-black border border-emerald-100 shadow-sm transition-all duration-500";
-                    } else {
-                        dot.className = "w-1.5 h-1.5 rounded-full bg-rose-500";
-                        text.innerText = "NGOẠI TUYẾN";
-                        badge.className = "flex items-center gap-2 px-3 py-1.5 rounded-full bg-white text-rose-500 text-[9px] font-black border border-rose-100 shadow-sm transition-all duration-500";
-                    }
+                if(!snap.exists()) return;
+                const last = snap.data().last_seen || 0;
+                const isOnline = Date.now() - last < 45000;
+                const dot = document.getElementById('status-dot');
+                const text = document.getElementById('status-text');
+                const badge = document.getElementById('status-badge');
+                if(isOnline) {
+                    dot.className = "w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse";
+                    text.innerText = "TRỰC TUYẾN";
+                    badge.className = "flex items-center gap-2 px-3 py-1.5 rounded-full bg-white text-emerald-600 text-[9px] font-black border border-emerald-100 shadow-sm";
+                } else {
+                    dot.className = "w-1.5 h-1.5 rounded-full bg-rose-500";
+                    text.innerText = "NGOẠI TUYẾN";
+                    badge.className = "flex items-center gap-2 px-3 py-1.5 rounded-full bg-white text-rose-500 text-[9px] font-black border border-rose-100 shadow-sm";
                 }
             });
         }
 
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                addLog("Xác thực Firebase thành công.", "success");
+                initDevices();
+                trackStatus();
+                // Schedule sync
+                onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'schedules'), orderBy('createdAt', 'desc')), (snap) => {
+                    const list = document.getElementById('schedule-list');
+                    list.innerHTML = '';
+                    snap.forEach(d => {
+                        const s = d.data();
+                        const div = document.createElement('div');
+                        div.className = "p-3 bg-white border border-slate-100 rounded-2xl flex items-center justify-between shadow-sm";
+                        div.innerHTML = `<div><div class="text-[10px] font-black text-slate-800 uppercase">${s.deviceId} - ${s.time}</div><div class="text-[8px] font-bold text-slate-400 uppercase">${s.action ? 'Bật' : 'Tắt'} • ${s.type==='once'?'Một lần':'Lặp lại'}</div></div><button onclick="window.deleteSch('${d.id}')" class="text-rose-400 p-2"><i class="fa-solid fa-trash-can"></i></button>`;
+                        list.appendChild(div);
+                    });
+                });
+            } else { signInAnonymously(auth); }
+        });
+
+        /* Source Code Viewer */
+        window.showCodeModal = () => {
+            const modal = document.getElementById('code-modal');
+            const codeBlock = document.getElementById('cpp-code-block');
+            modal.classList.remove('hidden');
+            modal.style.display = 'flex';
+            codeBlock.innerText = `// ESP32-C3 Smart Home Firmware\n// Chân: Relay (1,2,3,4), Nút nhấn (5,6,7,10), LED (8)\n// ... Xem mã nguồn chi tiết trong file esp32_firebase.ino ...`;
+        };
+        window.closeCodeModal = () => document.getElementById('code-modal').classList.add('hidden');
+        window.copyCode = () => {
+            const code = document.getElementById('cpp-code-block').innerText;
+            const el = document.createElement('textarea'); el.value = code; document.body.appendChild(el); el.select();
+            document.execCommand('copy'); document.body.removeChild(el);
+            addLog("Đã sao chép mã nguồn.", "success");
+        };
+
         document.getElementById('btn-reset-wifi').onclick = async () => {
-            const confirmed = window.confirm("Xóa cấu hình WiFi trên ESP32? Thiết bị sẽ khởi động lại và phát mạng 'ESP32-C3-Config'.");
-            if(confirmed) {
-                try {
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'system', 'commands'), { reset_wifi: true }, { merge: true });
-                    addLog("Đã gửi lệnh Reset WiFi.", "success");
-                } catch (e) { addLog("Lỗi: " + e.message, "error"); }
+            if(confirm("Xác nhận xóa cấu hình WiFi?")) {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'system', 'commands'), { reset_wifi: true }, { merge: true });
+                addLog("Đã gửi lệnh Reset WiFi.", "error");
             }
         };
 
-        const fullCppCode = `/* 
- * MA NGUON ESP32-C3 SMART HOME AI - PHIEN BAN HOAN THIEN
- * Dieukhien 4 Relay, 4 Nut nhan, Heartbeat, Reset WiFi
- */
+        // Global functions
+        window.deleteSch = (id) => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'schedules', id));
+    </script>
+</body>
+</html>
+```eof
+
+Mã nguồn ESP32-C3:esp32_firebase.ino
+```cpp
+/* <!-- STREAMING_CHUNK: Khai báo thư viện và thông số cấu hình --> */
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiManager.h> 
 #include <Firebase_ESP_Client.h>
 #include <addons/TokenHelper.h>
 
-// --- THONG TIN FIREBASE ---
 #define FIREBASE_PROJECT_ID "gemini-55ab8"
 #define FIREBASE_API_KEY "AIzaSyBSJwS5xFjXAczjBmVx1gvhMCiZFqKHFYU"
 
-// --- CAU HINH CHAN GPIO ---
-const int relayPins[] = {1, 2, 3, 4};       // Relay: GPIO 1, 2, 3, 4
-const int buttonPins[] = {5, 6, 7, 10};    // Nut nhan: GPIO 5, 6, 7, 10
-const int statusLed = 8;                   // LED bao hieu: GPIO 8
+// Chân GPIO
+const int relayPins[] = {1, 2, 3, 4};       // Relay 1, 2, 3, 4
+const int buttonPins[] = {5, 6, 7, 10};    // Button 1, 2, 3, 4
+const int statusLed = 8;                   // LED trên board
 const char* deviceIds[] = {"relay1", "relay2", "relay3", "relay4"};
 
 bool relayStates[] = {false, false, false, false};
@@ -250,12 +456,13 @@ unsigned long lastDebounce[] = {0, 0, 0, 0};
 FirebaseData fbdo;
 FirebaseAuth auth;
 FirebaseConfig config;
-WiFiManager wm; // FIX: Dua wm ra toan cuc de loop() su dung duoc
+WiFiManager wm; // Global để có thể reset trong loop
 
 void blinkLed() {
     digitalWrite(statusLed, HIGH); delay(100); digitalWrite(statusLed, LOW);
 }
 
+/* <!-- STREAMING_CHUNK: Setup - WiFi, Giờ và Firebase --> */
 void setup() {
     Serial.begin(115200);
     pinMode(statusLed, OUTPUT);
@@ -265,54 +472,58 @@ void setup() {
         pinMode(buttonPins[i], INPUT_PULLUP);
     }
     
-    // Tu dong ket noi hoac phat AP cau hinh
+    // Kết nối WiFi
     wm.autoConnect("ESP32-C3-Config", "12345678");
     WiFi.mode(WIFI_STA); 
     
-    // Dong bo gio NTP
+    // Đồng bộ giờ chuẩn để Firebase xác thực Token
     configTime(7 * 3600, 0, "pool.ntp.org", "time.nist.gov");
     struct tm timeinfo;
+    Serial.print("Syncing Time");
     while(!getLocalTime(&timeinfo)) { delay(500); Serial.print("."); }
+    Serial.println("\nTime Synced!");
 
+    // Cấu hình Firebase
     config.api_key = FIREBASE_API_KEY;
     Firebase.signUp(&config, &auth, "", "");
     Firebase.begin(&config, &auth);
     Firebase.reconnectWiFi(true);
     
     for(int i=0; i<3; i++) { blinkLed(); delay(100); }
-    Serial.println("--- HE THONG SAN SANG ---");
+    Serial.println("--- SYSTEM READY ---");
 }
 
+/* <!-- STREAMING_CHUNK: Vòng lặp Loop - Xử lý Heartbeat, Nút bấm và Đồng bộ Cloud --> */
 void loop() {
     if (Firebase.ready()) {
-        // 1. Heartbeat Online (Moi 15 giay)
+        // 1. Gửi Heartbeat (Mỗi 15 giây) để Web báo Trực tuyến
         static unsigned long lastHb = 0;
         if (millis() - lastHb > 15000) {
             lastHb = millis();
             time_t now = time(nullptr);
             unsigned long long nowMs = (unsigned long long)now * 1000;
             String path = "artifacts/gemini-55ab8/public/data/system/status";
-            String content = "{\\"fields\\":{\\"last_seen\\":{\\"integerValue\\":\\"" + String(nowMs) + "\\"}}}";
+            String content = "{\"fields\":{\"last_seen\":{\"integerValue\":\"" + String(nowMs) + "\"}}}";
             Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "", path.c_str(), content.c_str(), "last_seen");
         }
 
-        // 2. Kiem tra Lenh Reset WiFi tu Web
+        // 2. Kiểm tra lệnh Reset WiFi từ Dashboard Web
         static unsigned long lastCmdCheck = 0;
         if (millis() - lastCmdCheck > 5000) {
             lastCmdCheck = millis();
             String cmdPath = "artifacts/gemini-55ab8/public/data/system/commands";
             if (Firebase.Firestore.getDocument(&fbdo, FIREBASE_PROJECT_ID, "", cmdPath.c_str(), "")) {
-                if (fbdo.payload().indexOf("\\"reset_wifi\\":{\\"booleanValue\\":true}") > 0) {
-                    Serial.println(">>> NHAN LENH RESET WIFI!");
-                    Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "", cmdPath.c_str(), "{\\"fields\\":{\\"reset_wifi\\":{\\"booleanValue\\":false}}}", "reset_wifi");
+                if (fbdo.payload().indexOf("\"reset_wifi\":{\"booleanValue\":true}") > 0) {
+                    Serial.println(">>> RESET WIFI COMMAND RECEIVED!");
+                    Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "", cmdPath.c_str(), "{\"fields\":{\"reset_wifi\":{\"booleanValue\":false}}}", "reset_wifi");
                     delay(1000); 
-                    wm.resetSettings(); // Bay gio wm da hop le
+                    wm.resetSettings(); 
                     ESP.restart();
                 }
             }
         }
 
-        // 3. Nut nhan vat ly
+        // 3. Xử lý Nút nhấn vật lý (GPIO 5, 6, 7, 10)
         for(int i=0; i<4; i++) {
             int reading = digitalRead(buttonPins[i]);
             if (reading != lastBtnState[i]) lastDebounce[i] = millis();
@@ -321,47 +532,31 @@ void loop() {
                     relayStates[i] = !relayStates[i];
                     digitalWrite(relayPins[i], relayStates[i] ? HIGH : LOW);
                     String path = "artifacts/gemini-55ab8/public/data/devices/" + String(deviceIds[i]);
-                    String content = "{\\"fields\\":{\\"status\\":{\\"booleanValue\\":" + String(relayStates[i] ? "true" : "false") + "}}}";
+                    String content = "{\"fields\":{\"status\":{\"booleanValue\":" + String(relayStates[i] ? "true" : "false") + "}}}";
                     Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "", path.c_str(), content.c_str(), "status");
+                    Serial.printf("Physical Button TB%d: %s\n", i+1, relayStates[i] ? "ON" : "OFF");
                     blinkLed();
                 }
             }
             lastBtnState[i] = reading;
         }
 
-        // 4. Lenh tu Web (Moi 2 giay)
+        // 4. Đồng bộ lệnh từ Dashboard Web (Mỗi 2 giây)
         static unsigned long lastSync = 0;
         if(millis() - lastSync > 2000) {
             lastSync = millis();
             for(int i=0; i<4; i++) {
                 String path = "artifacts/gemini-55ab8/public/data/devices/" + String(deviceIds[i]);
                 if (Firebase.Firestore.getDocument(&fbdo, FIREBASE_PROJECT_ID, "", path.c_str(), "")) {
-                    bool cloudState = fbdo.payload().indexOf("\\"booleanValue\\":true") > 0;
+                    bool cloudState = fbdo.payload().indexOf("\"booleanValue\":true") > 0;
                     if(cloudState != relayStates[i]) {
                         relayStates[i] = cloudState;
                         digitalWrite(relayPins[i], relayStates[i] ? HIGH : LOW);
+                        Serial.printf("Web Command TB%d: %s\n", i+1, relayStates[i] ? "ON" : "OFF");
                         blinkLed();
                     }
                 }
             }
         }
     }
-}`;
-
-        document.getElementById('btn-show-code').onclick = () => {
-            document.getElementById('code-display').innerText = fullCppCode;
-            document.getElementById('code-modal').classList.remove('hidden');
-        };
-        document.getElementById('btn-close-code').onclick = () => document.getElementById('code-modal').classList.add('hidden');
-        document.getElementById('btn-copy-code').onclick = () => {
-            const el = document.createElement('textarea');
-            el.value = fullCppCode;
-            document.body.appendChild(el);
-            el.select();
-            document.execCommand('copy');
-            document.body.removeChild(el);
-            alert("Đã sao chép mã nguồn!");
-        };
-    </script>
-</body>
-</html>
+}
