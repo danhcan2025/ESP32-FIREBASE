@@ -1,1867 +1,367 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>SmartHome · Editorial</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-<style>
-/* ══════════════════════════════════════════
-   EDITORIAL LIGHT — Magazine IoT Dashboard
-   Playfair Display × Space Grotesk × Mono
-══════════════════════════════════════════ */
-:root {
-  --cream:    #faf7f2;
-  --paper:    #f2ede4;
-  --white:    #ffffff;
-  --ink:      #18130e;
-  --ink2:     #4a3f35;
-  --ink3:     #9a8f85;
-  --rule:     rgba(24,19,14,.1);
-  --rule2:    rgba(24,19,14,.06);
-  --on:       #1a5c38;
-  --on-pale:  #e8f5ee;
-  --off-pale: #fdf0ee;
-  --off:      #8b2012;
-  --accent:   #c8390a;
-  --gold:     #b8860b;
-  --blue:     #1a3a6b;
-}
-
-*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-html { font-size:16px; }
-
-body {
-  background: var(--cream);
-  color: var(--ink);
-  font-family: 'Space Grotesk', sans-serif;
-  min-height: 100vh;
-  overflow-x: hidden;
-  cursor: default;
-}
-
-/* Paper texture */
-body::before {
-  content: '';
-  position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
-  opacity: .7;
-}
-
-/* Horizontal rules — editorial feel */
-.rule { border:none; border-top:1px solid var(--rule); }
-.rule-heavy { border:none; border-top:2px solid var(--ink); }
-.rule-double {
-  border:none;
-  border-top: 3px solid var(--ink);
-  position: relative;
-}
-.rule-double::after {
-  content:''; position:absolute; top:4px; left:0; right:0;
-  border-top: 1px solid var(--ink);
-}
-
-@keyframes cdBlink{0%,100%{opacity:1;}50%{opacity:.2;}}
-
-/* ── Settings drawer ── */
-.settings-drawer {
-  position: fixed; top: 0; right: 0; bottom: 0;
-  width: 340px;
-  background: var(--white);
-  border-left: 1px solid var(--rule);
-  z-index: 100;
-  transform: translateX(100%);
-  transition: transform .3s cubic-bezier(.4,0,.2,1);
-  display: flex; flex-direction: column;
-  box-shadow: -8px 0 32px rgba(24,19,14,.06);
-}
-.settings-drawer.open { transform: translateX(0); }
-
-.sd-hd {
-  background: var(--ink);
-  color: var(--cream);
-  padding: 20px 24px;
-  display: flex; align-items: center; justify-content: space-between;
-  flex-shrink: 0;
-}
-.sd-title {
-  font-family: 'Playfair Display', serif;
-  font-size: 17px; font-style: italic; font-weight: 700;
-}
-.sd-close {
-  background: none; border: none; cursor: pointer;
-  color: rgba(255,255,255,.5); font-size: 18px;
-  padding: 4px 8px; border-radius: 4px;
-  transition: color .2s;
-}
-.sd-close:hover { color: var(--cream); }
-
-.sd-body { flex: 1; overflow-y: auto; padding: 24px; }
-.sd-body::-webkit-scrollbar { width: 3px; }
-.sd-body::-webkit-scrollbar-thumb { background: var(--rule); }
-
-.sd-section { margin-bottom: 28px; }
-.sd-section-hd {
-  font-family: 'Space Mono', monospace;
-  font-size: 9px; letter-spacing: 3px; text-transform: uppercase;
-  color: var(--ink3); margin-bottom: 14px;
-  padding-bottom: 8px; border-bottom: 1px solid var(--rule);
-  display: flex; align-items: center; gap: 8px;
-}
-.sd-lbl {
-  display: block;
-  font-family: 'Space Mono', monospace;
-  font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
-  color: var(--ink3); margin-bottom: 6px;
-}
-.sd-inp {
-  width: 100%;
-  background: var(--cream);
-  border: none; border-bottom: 2px solid var(--rule);
-  padding: 10px 0;
-  font-family: 'Space Mono', monospace;
-  font-size: 12px; color: var(--ink);
-  outline: none; transition: border-color .2s;
-  margin-bottom: 14px;
-}
-.sd-inp:focus { border-bottom-color: var(--ink); }
-.sd-inp::placeholder { color: var(--ink3); }
-
-.sd-conn {
-  display: flex; align-items: center; gap: 7px;
-  margin-bottom: 14px;
-  font-family: 'Space Mono', monospace;
-  font-size: 9px; letter-spacing: 1px; color: var(--ink3);
-}
-.cdot { width:7px;height:7px;border-radius:50%;background:var(--ink3);flex-shrink:0; }
-.cdot.ok { background:var(--on); }
-.cdot.er { background:var(--accent); }
-.cdot.ld { background:var(--gold);animation:cdBlink .8s infinite; }
-
-.sd-btn {
-  width: 100%; padding: 13px;
-  background: var(--ink); color: var(--cream); border: none;
-  font-family: 'Playfair Display', serif;
-  font-size: 15px; font-style: italic; font-weight: 700;
-  cursor: pointer; position: relative; overflow: hidden;
-  margin-top: 4px; transition: opacity .2s;
-}
-.sd-btn::before {
-  content: ''; position: absolute; inset: 0;
-  background: var(--on);
-  transform: scaleX(0); transform-origin: left;
-  transition: transform .3s ease;
-}
-.sd-btn:hover::before { transform: scaleX(1); }
-.sd-btn span { position: relative; z-index: 1; }
-.sd-btn.ghost {
-  background: var(--paper); color: var(--ink2);
-  border: 1px solid var(--rule);
-  font-family: 'Space Mono', monospace;
-  font-size: 10px; font-style: normal; letter-spacing: 2px;
-  text-transform: uppercase;
-}
-.sd-btn.ghost::before { background: var(--cream); }
-
-/* drawer overlay */
-.drawer-overlay {
-  position: fixed; inset: 0; z-index: 99;
-  background: rgba(24,19,14,.2);
-  display: none; cursor: pointer;
-}
-.drawer-overlay.show { display: block; }
-
-/* ══════════════════════════════════════════
-   MAIN PAGE
-══════════════════════════════════════════ */
-#pgMain { display:none; }
-#pgMain.active { display:flex; flex-direction:column; }
-
-/* ── MASTHEAD NAV ── */
-.site-header {
-  background: var(--white);
-  border-bottom: 1px solid var(--rule);
-  position: sticky; top: 0; z-index: 50;
-}
-
-.header-top {
-  max-width: 1400px; margin: 0 auto;
-  padding: 0 40px;
-  height: 56px;
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 16px;
-}
-
-.brand-editorial {
-  display: flex; align-items: baseline; gap: 10px;
-}
-
-.brand-name-lg {
-  font-family: 'Playfair Display', serif;
-  font-size: 22px;
-  font-weight: 900;
-  font-style: italic;
-  letter-spacing: -.5px;
-  color: var(--ink);
-}
-
-.brand-issue {
-  font-family: 'Space Mono', monospace;
-  font-size: 9px;
-  letter-spacing: 2px;
-  color: var(--ink3);
-  text-transform: uppercase;
-}
-
-.nav-center {
-  display: flex; gap: 2px;
-}
-
-.nav-tab {
-  padding: 6px 16px;
-  border: none;
-  background: none;
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 12px; font-weight: 500;
-  color: var(--ink3); cursor: pointer;
-  letter-spacing: .3px;
-  transition: all .2s;
-  border-bottom: 2px solid transparent;
-}
-.nav-tab:hover { color: var(--ink); border-bottom-color: var(--rule); }
-.nav-tab.active { color: var(--ink); border-bottom-color: var(--ink); }
-
-.nav-right {
-  display: flex; align-items: center; gap: 8px;
-}
-
-.clock-ed {
-  font-family: 'Space Mono', monospace;
-  font-size: 12px;
-  color: var(--ink3);
-  letter-spacing: 2px;
-}
-
-.status-pill {
-  display: flex; align-items: center; gap: 6px;
-  padding: 4px 12px;
-  border: 1px solid var(--rule);
-  font-family: 'Space Mono', monospace;
-  font-size: 9px; letter-spacing: 2px;
-  color: var(--ink3); text-transform: uppercase;
-}
-
-.status-pip {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--on);
-  box-shadow: 0 0 6px var(--on);
-  animation: cdBlink 2s ease-in-out infinite;
-}
-.status-pip.off { background: var(--accent); animation: none; box-shadow: none; }
-
-.hdr-btn {
-  background: none; border: 1px solid var(--rule);
-  padding: 6px 14px;
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 11px; font-weight: 500;
-  color: var(--ink2); cursor: pointer;
-  transition: all .2s;
-  display: flex; align-items: center; gap: 6px;
-}
-.hdr-btn:hover { background: var(--ink); color: var(--cream); border-color: var(--ink); }
-.hdr-btn svg { width: 14px; height: 14px; }
-
-/* ── MAIN WRAP ── */
-.main-wrap {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 40px 80px;
-  width: 100%;
-}
-
-.tab-panel { display: none; }
-.tab-panel.active { display: block; }
-
-/* ══ CONTROL TAB ═══════════════════════════════ */
-
-/* Big editorial header */
-.ctrl-masthead {
-  padding: 40px 0 0;
-  margin-bottom: 32px;
-}
-
-.ctrl-masthead-inner {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 32px;
-  align-items: end;
-  padding-bottom: 20px;
-  border-bottom: 2px solid var(--ink);
-}
-
-.issue-date {
-  font-family: 'Space Mono', monospace;
-  font-size: 9px; letter-spacing: 3px;
-  color: var(--ink3); text-transform: uppercase;
-  margin-bottom: 12px;
-  display: flex; align-items: center; gap: 10px;
-}
-.issue-date::before {
-  content: ''; width: 20px; height: 1px; background: var(--ink3);
-}
-
-.ctrl-room-name {
-  font-family: 'Playfair Display', serif;
-  font-size: clamp(36px, 5vw, 64px);
-  font-weight: 900;
-  font-style: italic;
-  line-height: .95;
-  letter-spacing: -1px;
-  cursor: pointer;
-  transition: color .2s;
-}
-.ctrl-room-name:hover { color: var(--accent); }
-
-.ctrl-room-name .sub {
-  display: block;
-  font-size: .35em;
-  font-style: normal;
-  font-weight: 400;
-  letter-spacing: 3px;
-  color: var(--ink3);
-  font-family: 'Space Mono', monospace;
-  text-transform: uppercase;
-  margin-bottom: 6px;
-}
-
-.masthead-right {
-  display: flex; align-items: center; gap: 20px;
-}
-
-.on-count {
-  text-align: center;
-}
-.on-count-num {
-  font-family: 'Playfair Display', serif;
-  font-size: 56px;
-  font-weight: 900;
-  font-style: italic;
-  line-height: 1;
-  color: var(--on);
-}
-.on-count-lbl {
-  font-family: 'Space Mono', monospace;
-  font-size: 8px; letter-spacing: 3px;
-  color: var(--ink3); text-transform: uppercase;
-  margin-top: 2px;
-}
-
-.kill-btn {
-  display: flex; flex-direction: column; align-items: center; gap: 6px;
-  background: none; border: none; cursor: pointer;
-}
-.kill-ico {
-  width: 44px; height: 44px;
-  border: 1px solid var(--rule);
-  display: flex; align-items: center; justify-content: center;
-  color: var(--ink3);
-  transition: all .2s;
-}
-.kill-ico svg { width: 18px; height: 18px; }
-.kill-btn:hover .kill-ico {
-  background: var(--accent); color: var(--white);
-  border-color: var(--accent);
-}
-.kill-lbl {
-  font-family: 'Space Mono', monospace;
-  font-size: 8px; letter-spacing: 2px;
-  color: var(--accent); opacity: .6;
-  text-transform: uppercase;
-}
-
-/* ── 2-col control layout ── */
-.ctrl-layout {
-  display: grid;
-  grid-template-columns: 1fr 280px;
-  gap: 40px;
-  align-items: start;
-}
-@media(max-width:960px){ .ctrl-layout { grid-template-columns: 1fr; } }
-
-/* switch grid — 2 columns */
-.sw-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1px;
-  background: var(--rule);
-  border: 1px solid var(--rule);
-  margin-bottom: 40px;
-}
-@media(max-width:520px){ .sw-grid { grid-template-columns: 1fr; } }
-
-/* ── SWITCH CARD — Editorial style ── */
-.sw-card {
-  background: var(--white);
-  padding: 24px;
-  position: relative;
-  overflow: hidden;
-  transition: background .3s;
-  cursor: default;
-}
-.sw-card.on { background: var(--on-pale); }
-.sw-card.offline-card { opacity: .4; pointer-events: none; }
-
-/* top accent bar */
-.sw-accent {
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: var(--rule);
-  transition: background .3s;
-}
-.sw-card.on .sw-accent { background: var(--on); }
-
-/* card layout */
-.sw-top {
-  display: flex; align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.sw-icon-wrap {
-  width: 40px; height: 40px;
-  background: var(--cream);
-  border: 1px solid var(--rule);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 20px;
-  flex-shrink: 0;
-  transition: all .3s;
-}
-.sw-card.on .sw-icon-wrap {
-  background: rgba(26,92,56,.08);
-  border-color: rgba(26,92,56,.2);
-}
-
-/* Big toggle — editorial style */
-.toggle-ed {
-  position: relative;
-  width: 56px; height: 28px;
-  cursor: pointer; flex-shrink: 0;
-}
-.toggle-track {
-  position: absolute; inset: 0;
-  background: rgba(24,19,14,.1);
-  transition: background .3s;
-}
-.toggle-ed.on .toggle-track { background: var(--on); }
-.toggle-thumb-ed {
-  position: absolute;
-  top: 4px; left: 4px;
-  width: 20px; height: 20px;
-  background: var(--white);
-  box-shadow: 0 1px 4px rgba(0,0,0,.2);
-  transition: transform .3s cubic-bezier(.34,1.56,.64,1);
-}
-.toggle-ed.on .toggle-thumb-ed { transform: translateX(28px); }
-
-/* name */
-.sw-name-ed {
-  font-family: 'Playfair Display', serif;
-  font-size: 18px;
-  font-weight: 700;
-  font-style: italic;
-  color: var(--ink);
-  cursor: pointer;
-  outline: none;
-  background: none;
-  border: none;
-  transition: color .2s;
-  line-height: 1.2;
-  text-align: left;
-  width: 100%;
-}
-.sw-name-ed:hover, .sw-name-ed:focus { color: var(--accent); }
-.sw-name-ed[contenteditable="true"] {
-  border-bottom: 2px solid var(--accent);
-  color: var(--accent);
-}
-
-.sw-footer-ed {
-  display: flex; align-items: center; justify-content: space-between;
-  border-top: 1px solid var(--rule);
-  padding-top: 12px;
-  margin-top: 4px;
-}
-
-.sw-status-ed {
-  font-family: 'Space Mono', monospace;
-  font-size: 9px; letter-spacing: 3px;
-  text-transform: uppercase;
-  color: var(--ink3);
-  transition: color .3s;
-}
-.sw-card.on .sw-status-ed { color: var(--on); }
-
-.sw-al-ed {
-  font-family: 'Space Mono', monospace;
-  font-size: 8px; letter-spacing: 2px;
-  text-transform: uppercase;
-  background: none; border: none;
-  cursor: pointer; color: var(--ink3);
-  transition: color .2s;
-}
-.sw-al-ed:hover { color: var(--blue); }
-
-/* ── Sidebar ── */
-.ctrl-sidebar {}
-
-.sidebar-section {
-  margin-bottom: 32px;
-}
-
-.sidebar-hd {
-  font-family: 'Space Mono', monospace;
-  font-size: 9px; letter-spacing: 3px;
-  text-transform: uppercase;
-  color: var(--ink3);
-  margin-bottom: 14px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--rule);
-}
-
-/* Log — newspaper column */
-.log-col {
-  background: var(--white);
-  border: 1px solid var(--rule);
-  height: 320px;
-  display: flex; flex-direction: column;
-  overflow: hidden;
-}
-.log-col-hd {
-  padding: 10px 14px;
-  background: var(--ink);
-  color: var(--cream);
-  font-family: 'Playfair Display', serif;
-  font-size: 13px;
-  font-style: italic;
-  display: flex; align-items: center; justify-content: space-between;
-}
-.log-col-body {
-  flex: 1; overflow-y: auto;
-  padding: 12px 14px;
-  font-family: 'Space Mono', monospace;
-  font-size: 10px; line-height: 1.8;
-}
-.log-col-body::-webkit-scrollbar { width: 3px; }
-.log-col-body::-webkit-scrollbar-thumb { background: var(--rule); }
-
-.log-item {
-  border-bottom: 1px solid var(--rule2);
-  padding-bottom: 8px;
-  margin-bottom: 8px;
-  color: var(--ink2);
-}
-.log-item:last-child { border-bottom: none; }
-.log-ts { color: var(--ink3); font-size: 9px; margin-right: 4px; }
-.log-g { color: var(--on); }
-.log-o { color: var(--gold); }
-.log-e { color: var(--accent); }
-.log-empty { color: var(--ink3); font-style: italic; padding: 20px 0; text-align: center; }
-
-.clear-log-btn {
-  background: none; border: none; cursor: pointer;
-  font-family: 'Space Mono', monospace;
-  font-size: 9px; color: rgba(255,255,255,.4);
-  letter-spacing: 1px; text-transform: uppercase;
-  transition: color .2s;
-}
-.clear-log-btn:hover { color: rgba(255,255,255,.8); }
-
-/* Status card */
-.status-ed {
-  background: var(--paper);
-  border: 1px solid var(--rule);
-  padding: 16px;
-}
-.status-ed-hd {
-  font-family: 'Playfair Display', serif;
-  font-size: 14px;
-  font-style: italic;
-  margin-bottom: 8px;
-  color: var(--ink);
-}
-.status-ed-body {
-  font-family: 'Space Mono', monospace;
-  font-size: 10px; line-height: 1.8;
-  color: var(--ink3);
-}
-.status-ed-body strong { color: var(--on); }
-
-/* Spec tiles */
-.spec-grid-ed {
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 1px; background: var(--rule);
-  border: 1px solid var(--rule);
-  margin-top: 32px;
-}
-.spec-tile-ed {
-  background: var(--white);
-  padding: 16px;
-  transition: background .2s;
-}
-.spec-tile-ed:hover { background: var(--cream); }
-.spec-lbl-ed {
-  font-family: 'Space Mono', monospace;
-  font-size: 8px; letter-spacing: 3px;
-  text-transform: uppercase; color: var(--ink3);
-  margin-bottom: 6px;
-}
-.spec-val-ed {
-  font-family: 'Space Mono', monospace;
-  font-size: 13px; font-weight: 700;
-  color: var(--ink);
-}
-
-/* ══ SCHEDULE TAB ════════════════════════════════ */
-.sched-masthead {
-  padding: 40px 0 24px;
-  border-bottom: 2px solid var(--ink);
-  margin-bottom: 28px;
-}
-.sched-eyebrow {
-  font-family: 'Space Mono', monospace;
-  font-size: 9px; letter-spacing: 3px;
-  color: var(--ink3); text-transform: uppercase;
-  margin-bottom: 8px;
-}
-.sched-hd-title {
-  font-family: 'Playfair Display', serif;
-  font-size: 36px;
-  font-weight: 900;
-  font-style: italic;
-  color: var(--ink);
-  letter-spacing: -.5px;
-}
-
-.sched-layout {
-  display: grid;
-  grid-template-columns: 1fr 300px;
-  gap: 40px;
-  align-items: start;
-}
-@media(max-width:860px){ .sched-layout { grid-template-columns: 1fr; } }
-
-/* device tabs — underline style */
-.dev-tabs-ed {
-  display: flex; gap: 0;
-  border-bottom: 1px solid var(--rule);
-  margin-bottom: 24px;
-  overflow-x: auto;
-}
-.dtab-ed {
-  padding: 10px 20px;
-  background: none; border: none;
-  border-bottom: 2px solid transparent;
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 12px; font-weight: 500;
-  color: var(--ink3); cursor: pointer;
-  white-space: nowrap;
-  transition: all .2s;
-  display: flex; align-items: center; gap: 8px;
-}
-.dtab-ed:hover { color: var(--ink); }
-.dtab-ed.active {
-  color: var(--ink);
-  border-bottom-color: var(--ink);
-}
-.dtab-cnt {
-  background: var(--paper);
-  padding: 1px 6px;
-  font-family: 'Space Mono', monospace;
-  font-size: 9px; color: var(--ink3);
-}
-
-/* schedule items — newspaper listing style */
-.sched-empty {
-  font-family: 'Playfair Display', serif;
-  font-style: italic;
-  font-size: 15px;
-  color: var(--ink3);
-  text-align: center;
-  padding: 48px 0;
-}
-
-.si {
-  display: flex; align-items: center; gap: 16px;
-  border-bottom: 1px solid var(--rule2);
-  padding: 16px 0;
-  position: relative;
-  transition: background .15s;
-}
-.si::before {
-  content: '';
-  position: absolute;
-  left: -16px; top: 0; bottom: 0;
-  width: 3px;
-  background: transparent;
-  transition: background .2s;
-}
-.si.si-on::before { background: var(--on); }
-.si.si-off::before { background: var(--accent); }
-.si.inactive { opacity: .4; }
-
-.si-time {
-  font-family: 'Playfair Display', serif;
-  font-size: 28px;
-  font-weight: 900;
-  font-style: italic;
-  color: var(--ink);
-  min-width: 80px;
-  line-height: 1;
-}
-
-.si-body { flex: 1; }
-
-.si-badge {
-  display: inline-flex; align-items: center; gap: 4px;
-  font-family: 'Space Mono', monospace;
-  font-size: 8px; letter-spacing: 2px;
-  text-transform: uppercase;
-  padding: 2px 8px;
-  margin-bottom: 6px;
-}
-.si-badge.on { background: var(--on-pale); color: var(--on); }
-.si-badge.off { background: var(--off-pale); color: var(--off); }
-
-.si-days { display: flex; gap: 4px; }
-.dchip {
-  width: 20px; height: 20px;
-  display: flex; align-items: center; justify-content: center;
-  font-family: 'Space Mono', monospace;
-  font-size: 7px; font-weight: 700;
-  color: var(--ink3);
-  border: 1px solid var(--rule);
-  transition: all .2s;
-}
-.dchip.on { background: var(--ink); color: var(--cream); border-color: var(--ink); }
-
-.si-ctrl { display: flex; align-items: center; gap: 8px; }
-
-.mt-ed {
-  width: 36px; height: 20px;
-  position: relative; cursor: pointer;
-  background: none; border: none;
-}
-.mt-track {
-  position: absolute; inset: 0;
-  background: rgba(24,19,14,.1);
-  transition: background .22s;
-}
-.mt-ed.on .mt-track { background: var(--on); }
-.mt-th {
-  position: absolute;
-  top: 3px; left: 3px;
-  width: 14px; height: 14px;
-  background: var(--white);
-  box-shadow: 0 1px 3px rgba(0,0,0,.2);
-  transition: transform .22s cubic-bezier(.34,1.56,.64,1);
-}
-.mt-ed.on .mt-th { transform: translateX(16px); }
-
-.del-btn-ed {
-  background: none; border: 1px solid var(--rule);
-  width: 28px; height: 28px;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; color: var(--ink3);
-  font-size: 12px;
-  transition: all .15s;
-}
-.del-btn-ed:hover { background: var(--off-pale); border-color: var(--accent); color: var(--accent); }
-
-/* timeline */
-.tl-section { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--rule); }
-.tl-hd {
-  font-family: 'Space Mono', monospace;
-  font-size: 8px; letter-spacing: 3px;
-  text-transform: uppercase; color: var(--ink3);
-  margin-bottom: 8px;
-}
-.tl-bar {
-  height: 24px; background: var(--paper);
-  border: 1px solid var(--rule);
-  position: relative; overflow: hidden;
-}
-.tl-seg {
-  position: absolute; top: 0; bottom: 0;
-  display: flex; align-items: center; justify-content: center;
-  font-family: 'Space Mono', monospace;
-  font-size: 7px; overflow: hidden;
-}
-.tl-seg.on { background: rgba(26,92,56,.4); color: var(--on); }
-.tl-seg.off { background: rgba(24,19,14,.06); color: var(--ink3); }
-.tl-now { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); z-index: 5; }
-.tl-now::before { content: '▼'; position: absolute; top: -8px; left: -4px; color: var(--accent); font-size: 8px; }
-.tl-hrs { display: flex; justify-content: space-between; padding: 4px 0; }
-.tl-h { font-family: 'Space Mono', monospace; font-size: 8px; color: var(--ink3); }
-
-/* ── Form ── */
-.form-panel-ed {
-  background: var(--white);
-  border: 1px solid var(--rule);
-  position: sticky; top: 72px;
-}
-.fp-hd {
-  background: var(--ink);
-  color: var(--cream);
-  padding: 14px 20px;
-  font-family: 'Playfair Display', serif;
-  font-size: 15px;
-  font-style: italic;
-}
-.fp-body { padding: 20px; }
-
-.f-lbl {
-  display: block;
-  font-family: 'Space Mono', monospace;
-  font-size: 8px; letter-spacing: 3px;
-  text-transform: uppercase; color: var(--ink3);
-  margin-bottom: 8px;
-}
-.f-row { margin-bottom: 20px; }
-
-.time-row { display: flex; align-items: center; gap: 8px; }
-.t-inp {
-  flex: 1;
-  background: var(--cream);
-  border: none;
-  border-bottom: 2px solid var(--ink);
-  padding: 10px 4px;
-  font-family: 'Playfair Display', serif;
-  font-size: 30px; font-weight: 900; font-style: italic;
-  color: var(--ink);
-  text-align: center;
-  outline: none;
-  transition: border-color .2s;
-  -moz-appearance: textfield;
-}
-.t-inp::-webkit-inner-spin-button,
-.t-inp::-webkit-outer-spin-button { -webkit-appearance: none; }
-.t-inp:focus { border-bottom-color: var(--accent); }
-.t-sep { font-family: 'Playfair Display', serif; font-size: 28px; color: var(--ink3); font-style: italic; }
-
-.act-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.a-btn {
-  padding: 10px;
-  border: 1px solid var(--rule);
-  background: var(--cream);
-  cursor: pointer;
-  font-family: 'Space Mono', monospace;
-  font-size: 10px; letter-spacing: 1px;
-  color: var(--ink2);
-  transition: all .2s;
-  text-align: center;
-}
-.a-btn.aon { background: var(--on-pale); border-color: rgba(26,92,56,.3); color: var(--on); }
-.a-btn.aoff { background: var(--off-pale); border-color: rgba(139,32,18,.3); color: var(--off); }
-
-.day-picker-ed { display: flex; gap: 4px; flex-wrap: wrap; }
-.d-btn {
-  width: 32px; height: 32px;
-  border: 1px solid var(--rule);
-  background: var(--cream);
-  font-family: 'Space Mono', monospace;
-  font-size: 8px; font-weight: 700;
-  color: var(--ink3); cursor: pointer;
-  transition: all .2s;
-}
-.d-btn:hover { border-color: var(--ink); color: var(--ink); }
-.d-btn.sel { background: var(--ink); border-color: var(--ink); color: var(--cream); }
-
-.quick-ed { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
-.q-btn {
-  padding: 3px 10px;
-  border: 1px solid var(--rule);
-  background: none; cursor: pointer;
-  font-family: 'Space Mono', monospace;
-  font-size: 8px; color: var(--ink3);
-  transition: all .2s;
-}
-.q-btn:hover { border-color: var(--ink); color: var(--ink); }
-
-.btn-add-ed {
-  width: 100%;
-  padding: 14px;
-  background: var(--ink); color: var(--cream);
-  border: none;
-  font-family: 'Playfair Display', serif;
-  font-size: 16px; font-style: italic; font-weight: 700;
-  cursor: pointer;
-  transition: all .18s;
-  position: relative; overflow: hidden;
-}
-.btn-add-ed::before {
-  content: ''; position: absolute; inset: 0;
-  background: var(--on); transform: scaleX(0);
-  transform-origin: left; transition: transform .3s ease;
-}
-.btn-add-ed:hover::before { transform: scaleX(1); }
-.btn-add-ed span { position: relative; z-index: 1; }
-
-/* ══ FIRMWARE MODAL ════════════════════════════════ */
-.modal-ov {
-  position: fixed; inset: 0;
-  background: rgba(24,19,14,.5);
-  backdrop-filter: blur(4px);
-  z-index: 200;
-  display: none; align-items: center; justify-content: center;
-  padding: 24px;
-}
-.modal-ov.open { display: flex; }
-.modal {
-  background: var(--white);
-  border: 1px solid var(--rule);
-  width: min(820px,96vw);
-  max-height: 86vh;
-  display: flex; flex-direction: column;
-  box-shadow: 8px 8px 0 var(--ink);
-}
-.modal-hd {
-  padding: 16px 22px;
-  border-bottom: 2px solid var(--ink);
-  display: flex; align-items: center; justify-content: space-between;
-  background: var(--ink);
-  color: var(--cream);
-}
-.modal-title-ed {
-  font-family: 'Playfair Display', serif;
-  font-size: 17px; font-style: italic; font-weight: 700;
-  display: flex; align-items: center; gap: 8px;
-}
-.modal-title-ed svg { width: 14px; height: 14px; }
-.close-btn {
-  background: none; border: none;
-  font-size: 18px; cursor: pointer;
-  color: rgba(255,255,255,.5);
-  transition: color .2s; padding: 4px 8px;
-}
-.close-btn:hover { color: var(--cream); }
-.modal-body {
-  flex: 1; overflow-y: auto;
-  background: #1a1410;
-  padding: 20px;
-  position: relative;
-  font-family: 'Space Mono', monospace;
-  font-size: 11px; line-height: 1.75;
-}
-.modal-body::-webkit-scrollbar { width: 3px; }
-.modal-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); }
-pre { color: rgba(200,240,210,.8); white-space: pre; word-break: normal; }
-.copy-fw {
-  position: absolute; top: 14px; right: 14px;
-  padding: 6px 14px;
-  background: var(--on); color: var(--white);
-  border: none; cursor: pointer;
-  font-family: 'Space Mono', monospace;
-  font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
-  transition: background .2s; z-index: 5;
-}
-.copy-fw:hover { background: var(--on); opacity: .8; }
-.modal-ft {
-  padding: 12px 22px;
-  border-top: 1px solid var(--rule);
-  font-family: 'Space Mono', monospace;
-  font-size: 9px; color: var(--ink3);
-  line-height: 1.9; background: var(--paper);
-}
-.modal-ft .warn { color: var(--accent); }
-
-/* toasts */
-.toasts { position: fixed; bottom: 24px; right: 24px; z-index: 300; display: flex; flex-direction: column; gap: 7px; }
-.toast {
-  background: var(--ink); color: var(--cream);
-  padding: 10px 18px;
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 12px; font-weight: 500;
-  box-shadow: 4px 4px 0 rgba(24,19,14,.2);
-  animation: toastIn .2s ease;
-  display: flex; align-items: center; gap: 7px;
-}
-@keyframes toastIn { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-thumb { background: var(--rule); }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ESP32-C3 Smart Home AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; padding-bottom: 90px; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .nav-item.active { color: #2563eb; }
+        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
+        .ai-glow { box-shadow: 0 0 20px rgba(37, 99, 235, 0.2); border: 1px solid rgba(37, 99, 235, 0.1); }
+    </style>
 </head>
-<body>
+<body class="p-4 flex flex-col items-center">
 
-<!-- Settings drawer overlay -->
-<div class="drawer-overlay" id="drawerOverlay" onclick="closeSettings()"></div>
-
-<!-- Settings drawer -->
-<div class="settings-drawer" id="settingsDrawer">
-  <div class="sd-hd">
-    <div class="sd-title">Cài đặt kết nối</div>
-    <button class="sd-close" onclick="closeSettings()">✕</button>
-  </div>
-  <div class="sd-body">
-    <div class="sd-section">
-      <div class="sd-section-hd">🔥 Firebase Realtime DB</div>
-      <label class="sd-lbl">Database URL</label>
-      <input class="sd-inp" id="fbUrl" placeholder="https://YOUR-PROJECT-rtdb.firebaseio.com">
-      <label class="sd-lbl">API Key</label>
-      <input class="sd-inp" id="fbKey" placeholder="AIzaSy...">
-      <div class="sd-conn">
-        <div class="cdot" id="cdot"></div>
-        <span id="ctxt">Chưa kết nối</span>
-      </div>
-      <button class="sd-btn" onclick="doConnect()"><span>Kết nối →</span></button>
-    </div>
-    <div class="sd-section">
-      <div class="sd-section-hd">📶 Firmware WiFi</div>
-      <label class="sd-lbl">Tên WiFi (ghi vào firmware)</label>
-      <input class="sd-inp" id="wifiSsid" placeholder="Tên mạng WiFi nhà bạn">
-    </div>
-    <div class="sd-section">
-      <div class="sd-section-hd">🎮 Demo</div>
-      <button class="sd-btn ghost" onclick="doDemo()"><span>Tải dữ liệu mẫu</span></button>
-    </div>
-  </div>
-</div>
-
-<div id="pgMain" class="page active">
-  <div class="site-header">
-    <div class="header-top">
-      <div class="brand-editorial">
-        <div class="brand-name-lg">SmartHome</div>
-        <div class="brand-issue">Firebase · ESP32-C3</div>
-      </div>
-
-      <div class="nav-center">
-        <button class="nav-tab active" onclick="goTab('ctrl')">Điều khiển</button>
-        <button class="nav-tab" onclick="goTab('sched')">Hẹn giờ</button>
-      </div>
-
-      <div class="nav-right">
-        <div class="clock-ed" id="clock">--:--:--</div>
-        <div class="status-pill">
-          <div class="status-pip" id="onPip"></div>
-          <span id="onTxt">Ngoại tuyến</span>
+    <div class="w-full max-w-md mb-6 flex justify-between items-end px-1">
+        <div>
+            <h1 class="text-2xl font-black text-slate-900 leading-tight">Smart AI Home</h1>
+            <p class="text-slate-400 text-[10px] font-bold tracking-widest uppercase">ESP32-C3 • 4 Kênh GPIO</p>
         </div>
-        <button class="hdr-btn" onclick="document.getElementById('fwModal').classList.add('open')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-          Firmware
+        <div id="status-badge" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white text-slate-400 text-[9px] font-black border border-slate-200 shadow-sm transition-all duration-500">
+            <div id="status-dot" class="w-1.5 h-1.5 rounded-full bg-slate-300"></div> 
+            <span id="status-text">ĐANG KẾT NỐI</span>
+        </div>
+    </div>
+
+    <main id="tab-control" class="tab-content active w-full max-w-md space-y-4">
+        <div class="glass ai-glow p-4 rounded-[2rem] mb-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white shrink-0 shadow-lg">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </div>
+                <input type="text" id="ai-input" placeholder="Hỏi AI... (VD: Bật đèn 1)" class="flex-1 bg-transparent border-none outline-none text-xs font-semibold text-slate-700">
+                <button id="btn-ai-send" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+                    <i class="fa-solid fa-paper-plane text-[10px]"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="device-list" class="grid grid-cols-4 gap-2">
+            <!-- Sẽ được populate bởi JS -->
+            <div class="animate-pulse bg-white h-24 rounded-3xl"></div>
+            <div class="animate-pulse bg-white h-24 rounded-3xl"></div>
+            <div class="animate-pulse bg-white h-24 rounded-3xl"></div>
+            <div class="animate-pulse bg-white h-24 rounded-3xl"></div>
+        </div>
+    </main>
+
+    <section id="tab-schedule" class="tab-content w-full max-w-md">
+        <div class="flex justify-between items-center mb-4 px-1">
+            <h2 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Hẹn giờ tự động</h2>
+            <button class="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black shadow-lg">THÊM LỊCH</button>
+        </div>
+        <div id="schedule-list" class="space-y-2">
+            <div class="text-center py-10 text-slate-300 text-xs italic">Đang tải lịch trình...</div>
+        </div>
+    </section>
+
+    <section id="tab-settings" class="tab-content w-full max-w-md space-y-4">
+        <div class="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
+            <h3 class="font-bold text-slate-800 text-xs uppercase flex items-center gap-2">
+                <i class="fa-solid fa-microchip text-indigo-500"></i> Quản lý thiết bị
+            </h3>
+            <button id="btn-show-code" class="w-full py-3 bg-indigo-50 text-indigo-600 rounded-xl font-black text-[10px] border border-indigo-100">XEM MÃ NGUỒN C++</button>
+            <button id="btn-reset-wifi" class="w-full py-3 bg-rose-50 text-rose-600 rounded-xl font-black text-[10px] border border-rose-100 uppercase">Cấu hình lại WiFi</button>
+        </div>
+
+        <div id="log-box" class="h-40 overflow-y-auto bg-slate-900 rounded-[1.5rem] p-4 text-[9px] font-mono space-y-1 text-slate-300 shadow-inner border border-slate-800">
+            <div class="text-blue-400">> Khởi tạo hệ thống...</div>
+        </div>
+    </section>
+
+    <div id="code-modal" class="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-[100] hidden flex flex-col p-4">
+        <div class="flex justify-between items-center mb-4 text-white">
+            <h2 class="font-black text-xs uppercase">ESP32-C3 Full Source Code</h2>
+            <div class="flex gap-2">
+                <button id="btn-copy-code" class="px-4 py-2 bg-blue-600 rounded-xl text-[10px] font-bold">SAO CHÉP</button>
+                <button id="btn-close-code" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+        </div>
+        <pre id="code-display" class="flex-1 bg-slate-950 border border-white/10 rounded-3xl p-4 overflow-auto text-emerald-400 text-[10px] font-mono leading-relaxed"></pre>
+    </div>
+
+    <nav class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-100 flex justify-around items-center py-3 px-6 z-[80]">
+        <button onclick="window.showTab('control')" id="nav-control" class="nav-item active flex flex-col items-center gap-1">
+            <i class="fa-solid fa-grip-vertical text-lg"></i>
+            <span class="text-[8px] font-black uppercase tracking-widest">Thiết bị</span>
         </button>
-        <button class="hdr-btn" onclick="openSettings()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          Cài đặt
+        <button onclick="window.showTab('schedule')" id="nav-schedule" class="nav-item flex flex-col items-center gap-1 text-slate-400">
+            <i class="fa-solid fa-calendar-day text-lg"></i>
+            <span class="text-[8px] font-black uppercase tracking-widest">Hẹn giờ</span>
         </button>
-      </div>
-    </div>
-  </div>
+        <button onclick="window.showTab('settings')" id="nav-settings" class="nav-item flex flex-col items-center gap-1 text-slate-400">
+            <i class="fa-solid fa-sliders text-lg"></i>
+            <span class="text-[8px] font-black uppercase tracking-widest">Cấu hình</span>
+        </button>
+    </nav>
 
-  <div class="main-wrap">
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, setDoc, updateDoc, onSnapshot, collection, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    <!-- ══ CONTROL TAB ══ -->
-    <div class="tab-panel active" id="tabCtrl">
-      <div class="ctrl-masthead">
-        <div class="ctrl-masthead-inner">
-          <div>
-            <div class="issue-date" id="issueDateEl">Trực tiếp · Firebase Realtime</div>
-            <div class="ctrl-room-name" onclick="editRoomName()" id="roomTitle">
-              <span class="sub" id="sysNameBadge">SinricPro Node-01</span>
-              PHÒNG NGỦ
-            </div>
-          </div>
-          <div class="masthead-right">
-            <div class="on-count">
-              <div class="on-count-num" id="onCount">0</div>
-              <div class="on-count-lbl">Đang bật</div>
-            </div>
-            <button class="kill-btn" onclick="killAll()">
-              <div class="kill-ico">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/></svg>
-              </div>
-              <span class="kill-lbl">Tắt hết</span>
-            </button>
-          </div>
-        </div>
-      </div>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBSJwS5xFjXAczjBmVx1gvhMCiZFqKHFYU",
+            authDomain: "gemini-55ab8.firebaseapp.com",
+            projectId: "gemini-55ab8",
+            storageBucket: "gemini-55ab8.firebasestorage.app",
+            messagingSenderId: "947388739159",
+            appId: "1:947388739159:web:5ee13bd985eaacb7a73d12"
+        };
 
-      <div class="ctrl-layout">
-        <div>
-          <div class="sw-grid" id="swGrid"></div>
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        const appId = "gemini-55ab8";
+        const devIds = ["relay1", "relay2", "relay3", "relay4"];
 
-          <div class="spec-grid-ed">
-            <div class="spec-tile-ed"><div class="spec-lbl-ed">Vi xử lý</div><div class="spec-val-ed">ESP32-C3</div></div>
-            <div class="spec-tile-ed"><div class="spec-lbl-ed">Baud Rate</div><div class="spec-val-ed">115200</div></div>
-            <div class="spec-tile-ed"><div class="spec-lbl-ed">Chống rung</div><div class="spec-val-ed">250ms</div></div>
-            <div class="spec-tile-ed"><div class="spec-lbl-ed">Cloud</div><div class="spec-val-ed">Firebase</div></div>
-          </div>
-        </div>
+        window.showTab = (id) => {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => {
+                n.classList.remove('active');
+                n.classList.add('text-slate-400');
+            });
+            document.getElementById(`tab-${id}`).classList.add('active');
+            const navBtn = document.getElementById(`nav-${id}`);
+            navBtn.classList.add('active');
+            navBtn.classList.remove('text-slate-400');
+        };
 
-        <div class="ctrl-sidebar">
-          <div class="sidebar-section">
-            <div class="sidebar-hd">Nhật ký hệ thống</div>
-            <div class="log-col">
-              <div class="log-col-hd">
-                <span>Activity Log</span>
-                <button class="clear-log-btn" onclick="clearLog()">Xóa</button>
-              </div>
-              <div class="log-col-body" id="logBody">
-                <div class="log-empty">Đang theo dõi sự kiện...</div>
-              </div>
-            </div>
-          </div>
+        const addLog = (msg, type = "info") => {
+            const box = document.getElementById('log-box');
+            const entry = document.createElement('div');
+            entry.className = type === "success" ? "text-emerald-400" : type === "error" ? "text-rose-400" : "text-slate-400";
+            entry.innerHTML = `<span class="text-slate-600">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
+            box.appendChild(entry);
+            box.scrollTop = box.scrollHeight;
+        };
 
-          <div class="sidebar-section">
-            <div class="sidebar-hd">Trạng thái kết nối</div>
-            <div class="status-ed">
-              <div class="status-ed-hd">Liên kết Firebase</div>
-              <div class="status-ed-body" id="statusBody">
-                Chưa kết nối. Nhập URL và API Key để đồng bộ với ESP32.
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                addLog("Xác thực Firebase thành công.", "success");
+                initApp();
+            } else {
+                signInAnonymously(auth).catch(err => addLog("Auth Error: " + err.message, "error"));
+            }
+        });
 
-    <!-- ══ SCHEDULE TAB ══ -->
-    <div class="tab-panel" id="tabSched">
-      <div class="sched-masthead">
-        <div class="sched-eyebrow">Quản lý thời gian</div>
-        <div class="sched-hd-title">Lịch hẹn giờ thiết bị</div>
-      </div>
+        function initApp() {
+            const list = document.getElementById('device-list');
+            list.innerHTML = ''; 
 
-      <div class="sched-layout">
-        <div>
-          <div class="dev-tabs-ed" id="devTabs"></div>
-          <div id="schedList">
-            <div class="sched-empty">Chưa có lịch nào · Thêm ở form bên phải</div>
-          </div>
-          <div id="tlWrap" style="display:none">
-            <div class="tl-section">
-              <div class="tl-hd">Timeline hôm nay</div>
-              <div class="tl-bar" id="tlBar"><div class="tl-now" id="tlNow"></div></div>
-              <div class="tl-hrs">
-                <span class="tl-h">0h</span><span class="tl-h">6h</span>
-                <span class="tl-h">12h</span><span class="tl-h">18h</span>
-                <span class="tl-h">24h</span>
-              </div>
-            </div>
-          </div>
-        </div>
+            devIds.forEach((id, index) => {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'devices', id);
+                const card = document.createElement('div');
+                card.className = "bg-white p-2 py-4 rounded-[1.5rem] flex flex-col items-center gap-2 border border-slate-100 shadow-sm relative overflow-hidden";
+                card.innerHTML = `
+                    <div id="icon-${id}" class="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center text-slate-300 transition-all duration-300"><i class="fa-solid fa-bolt text-[10px]"></i></div>
+                    <span class="font-black text-slate-700 text-[8px] uppercase tracking-tighter text-center">Thiết bị ${index+1}</span>
+                    <button id="toggle-${id}" class="w-full py-2 rounded-xl bg-slate-50 relative overflow-hidden border border-slate-100">
+                        <div id="bg-fill-${id}" class="absolute inset-0 bg-blue-600 translate-y-full transition-transform duration-500"></div>
+                        <span id="label-${id}" class="relative z-10 text-[8px] font-black text-slate-400 uppercase">Tắt</span>
+                    </button>
+                `;
+                list.appendChild(card);
 
-        <div>
-          <div class="form-panel-ed">
-            <div class="fp-hd">Thêm lịch mới</div>
-            <div class="fp-body">
-              <div class="f-row">
-                <label class="f-lbl">Giờ kích hoạt</label>
-                <div class="time-row">
-                  <input class="t-inp" id="inpH" type="number" min="0" max="23" value="07">
-                  <span class="t-sep">:</span>
-                  <input class="t-inp" id="inpM" type="number" min="0" max="59" value="00">
-                </div>
-              </div>
-              <div class="f-row">
-                <label class="f-lbl">Hành động</label>
-                <div class="act-row">
-                  <button class="a-btn aon" id="aOn" onclick="selAct(true)">▶ BẬT</button>
-                  <button class="a-btn" id="aOff" onclick="selAct(false)">■ TẮT</button>
-                </div>
-              </div>
-              <div class="f-row">
-                <label class="f-lbl">Lặp lại theo ngày</label>
-                <div class="day-picker-ed" id="dayPicker"></div>
-                <div class="quick-ed">
-                  <button class="q-btn" onclick="setDays([2,3,4,5,6])">T2–T6</button>
-                  <button class="q-btn" onclick="setDays([7,1])">Cuối tuần</button>
-                  <button class="q-btn" onclick="setDays([1,2,3,4,5,6,7])">Mỗi ngày</button>
-                  <button class="q-btn" onclick="setDays([])">Bỏ chọn</button>
-                </div>
-              </div>
-              <button class="btn-add-ed" onclick="addSched()"><span>＋ Thêm lịch</span></button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+                onSnapshot(docRef, (snap) => {
+                    if(!snap.exists()) return;
+                    const status = snap.data().status;
+                    const fill = document.getElementById(`bg-fill-${id}`);
+                    const label = document.getElementById(`label-${id}`);
+                    const icon = document.getElementById(`icon-${id}`);
+                    
+                    fill.style.transform = status ? 'translateY(0)' : 'translateY(100%)';
+                    label.innerText = status ? 'Bật' : 'Tắt';
+                    label.className = `relative z-10 text-[8px] font-black uppercase ${status ? 'text-white' : 'text-slate-400'}`;
+                    icon.className = `w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-500 ${status ? 'bg-blue-100 text-blue-600 scale-110 shadow-lg shadow-blue-200' : 'bg-slate-50 text-slate-300'}`;
 
-<!-- ══ FIRMWARE MODAL ══ -->
-<div class="modal-ov" id="fwModal">
-  <div class="modal">
-    <div class="modal-hd">
-      <div class="modal-title-ed">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-        Firmware Generator · ESP32-C3
-      </div>
-      <button class="close-btn" onclick="document.getElementById('fwModal').classList.remove('open')">✕</button>
-    </div>
-    <div class="modal-body">
-      <button class="copy-fw" onclick="copyFw()">Sao chép</button>
-      <pre id="fwPre"></pre>
-    </div>
-    <div class="modal-ft">
-      <span>• Arduino IDE · ESP32-C3 Core v2.0+</span><br>
-      <span>• Thư viện cần: WiFiManager (tzapu), Firebase_ESP_Client (Mobizt), ArduinoJson</span><br>
-      <span class="warn">• Gỡ "WiFi101" nếu gặp lỗi conflicting declaration</span><br>
-      <span>• Firebase URL & API Key đã nhúng sẵn — người dùng chỉ cần nhập WiFi</span>
-    </div>
-  </div>
-</div>
-
-<div class="toasts" id="toasts"></div>
-
-<script>
-/* ══════════════════════════════════════════════
-   STATE
-══════════════════════════════════════════════ */
-const DEVICES = [
-  { id:'69f48b0bf9b5f15fa7ca8c11', name:'Đèn phòng khách', icon:'💡', relayPin:5,  btnPin:4,  activeLow:true,  status:false },
-  { id:'69f48b0bf9b5f15fa7ca8c12', name:'Đèn ngủ',         icon:'🌙', relayPin:6,  btnPin:3,  activeLow:true,  status:false },
-  { id:'69f48b0bf9b5f15fa7ca8c13', name:'Quạt trần',        icon:'🌀', relayPin:7,  btnPin:2,  activeLow:true,  status:false },
-  { id:'69f48b0bf9b5f15fa7ca8c14', name:'Máy lạnh',         icon:'❄️', relayPin:10, btnPin:1,  activeLow:true,  status:false },
-];
-const DAY_LABELS = ['','CN','T2','T3','T4','T5','T6','T7'];
-
-let roomName   = localStorage.getItem('rn')  || 'PHÒNG NGỦ';
-let systemName = localStorage.getItem('sn')  || 'SinricPro Node-01';
-let schedules  = {};
-let curDev     = DEVICES[0].id;
-let actState   = true;
-let selDays    = new Set([2,3,4,5,6]);
-let fb         = null;
-let isOnline   = false;
-let lastRunMap = {};
-
-DEVICES.forEach(d => schedules[d.id] = []);
-document.getElementById('sysNameBadge').textContent = systemName;
-document.getElementById('roomTitle').childNodes[1] && (() => {
-  // set text node (after the span)
-})();
-
-/* ══ CLOCK ══ */
-function tick() {
-  const now = new Date();
-  document.getElementById('clock').textContent = now.toTimeString().slice(0,8);
-  updTlNow(now);
-  runSchedules(now);
-}
-setInterval(tick, 1000); tick();
-
-/* ══ SETTINGS DRAWER ══ */
-function openSettings() {
-  document.getElementById('settingsDrawer').classList.add('open');
-  document.getElementById('drawerOverlay').classList.add('show');
-}
-function closeSettings() {
-  document.getElementById('settingsDrawer').classList.remove('open');
-  document.getElementById('drawerOverlay').classList.remove('show');
-}
-
-function setConn(st, txt) {
-  const dot = document.getElementById('cdot');
-  const el  = document.getElementById('ctxt');
-  dot.className = 'cdot ' + st;
-  el.textContent = txt;
-  el.style.color = st==='ok'?'var(--on)':st==='er'?'var(--accent)':'var(--ink3)';
-}
-
-async function doConnect() {
-  const url = document.getElementById('fbUrl').value.trim();
-  const key = document.getElementById('fbKey').value.trim();
-  if (!url) { toast('⚠️ Nhập Firebase URL!'); return; }
-  setConn('ld','Đang kết nối...');
-  const ok = await connectFb(url, key);
-  if (ok) { closeSettings(); toast('🔥 Firebase đã kết nối!'); }
-}
-
-function doDemo() {
-  schedules[DEVICES[0].id] = [
-    {id:'d1',hour:6,min:0,state:true,days:[2,3,4,5,6],active:true},
-    {id:'d2',hour:23,min:0,state:false,days:[1,2,3,4,5,6,7],active:true},
-  ];
-  schedules[DEVICES[2].id] = [
-    {id:'d3',hour:7,min:30,state:true,days:[2,3,4,5,6],active:true},
-    {id:'d4',hour:9,min:0,state:false,days:[2,3,4,5,6],active:false},
-  ];
-  addLog('[Hệ thống]: Demo mode — dữ liệu mẫu','o');
-  renderSchedList(); renderDevTabs();
-  closeSettings();
-  toast('🎮 Dữ liệu mẫu đã tải!');
-}
-
-/* ══ FIREBASE ══ */
-async function connectFb(url, key) {
-  try {
-    const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
-    const { getDatabase, ref, set, remove, onValue, serverTimestamp } =
-      await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-    const app = getApps().find(a=>a.name==='sh') ||
-      initializeApp({databaseURL:url,apiKey:key},'sh');
-    const db = getDatabase(app);
-    fb = {db,ref,set,remove,onValue,serverTimestamp};
-
-    onValue(ref(db,'iot-home/switches'), snap => {
-      const data = snap.val()||{};
-      DEVICES.forEach(d => {
-        if (data[d.id]!==undefined) {
-          const ns=!!data[d.id].state;
-          if(d.status!==ns){d.status=ns;updateCard(d.id);addLog(`[Firebase]: ${d.name} → ${ns?'Bật':'Tắt'}`,ns?'g':'');updateOnCount();}
+                    document.getElementById(`toggle-${id}`).onclick = () => {
+                        updateDoc(docRef, { status: !status });
+                        addLog(`TB ${index+1} -> ${!status ? 'BẬT' : 'TẮT'}`, "info");
+                    };
+                });
+            });
+            trackConnection();
         }
-      });
-    });
 
-    onValue(ref(db,'iot-home/schedules'), snap => {
-      const data=snap.val()||{};
-      DEVICES.forEach(d=>{
-        const dd=data[d.id]||{};
-        schedules[d.id]=Object.entries(dd).map(([sid,s])=>({
-          id:sid,hour:s.hour,min:s.minute,state:s.state,active:s.active!==false,
-          days:Object.keys(s.days||{}).filter(k=>s.days[k]).map(Number)
-        })).sort((a,b)=>a.hour*60+a.min-(b.hour*60+b.min));
-      });
-      renderSchedList(); renderDevTabs();
-    });
+        function trackConnection() {
+            const dot = document.getElementById('status-dot');
+            const text = document.getElementById('status-text');
+            const badge = document.getElementById('status-badge');
+            
+            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'system', 'status'), (snap) => {
+                if (snap.exists()) {
+                    const lastSeen = snap.data().last_seen || 0;
+                    const diff = Date.now() - lastSeen;
+                    if (diff < 45000) {
+                        dot.className = "w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse";
+                        text.innerText = "TRỰC TUYẾN";
+                        badge.className = "flex items-center gap-2 px-3 py-1.5 rounded-full bg-white text-emerald-600 text-[9px] font-black border border-emerald-100 shadow-sm transition-all duration-500";
+                    } else {
+                        dot.className = "w-1.5 h-1.5 rounded-full bg-rose-500";
+                        text.innerText = "NGOẠI TUYẾN";
+                        badge.className = "flex items-center gap-2 px-3 py-1.5 rounded-full bg-white text-rose-500 text-[9px] font-black border border-rose-100 shadow-sm transition-all duration-500";
+                    }
+                }
+            });
+        }
 
-    setConn('ok','Firebase OK');
-    addLog('[Firebase]: Kết nối thành công','g');
-    document.getElementById('statusBody').innerHTML =
-      '<strong>Firebase OK</strong> — Lắng nghe realtime. Đồng bộ tức thì với ESP32.';
-    return true;
-  } catch(e) {
-    setConn('er','Lỗi: '+e.message.slice(0,35));
-    addLog('[Firebase]: Lỗi — '+e.message,'e');
-    return false;
-  }
-}
+        document.getElementById('btn-reset-wifi').onclick = async () => {
+            const confirmed = window.confirm("Xóa cấu hình WiFi trên ESP32? Thiết bị sẽ khởi động lại và phát mạng 'ESP32-C3-Config'.");
+            if(confirmed) {
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'system', 'commands'), { reset_wifi: true }, { merge: true });
+                    addLog("Đã gửi lệnh Reset WiFi.", "success");
+                } catch (e) { addLog("Lỗi: " + e.message, "error"); }
+            }
+        };
 
-function fbSetSwitch(devId, state) {
-  if (!fb) return;
-  const {db,ref,set,serverTimestamp} = fb;
-  set(ref(db,`iot-home/switches/${devId}`),{state,updatedAt:serverTimestamp(),updatedBy:'web-editorial'});
-}
-function fbSetSched(devId,s){
-  if(!fb) return;
-  const{db,ref,set}=fb;
-  const days={};for(let d=1;d<=7;d++)days[d]=s.days.includes(d);
-  set(ref(db,`iot-home/schedules/${devId}/${s.id}`),{hour:s.hour,minute:s.min,state:s.state,days,active:s.active});
-}
-function fbDelSched(devId,sid){
-  if(!fb)return;
-  const{db,ref,remove}=fb;
-  remove(ref(db,`iot-home/schedules/${devId}/${sid}`));
-}
-
-/* ══ TABS ══ */
-function goTab(name) {
-  document.querySelectorAll('.nav-tab').forEach((t,i)=>
-    t.classList.toggle('active',['ctrl','sched'][i]===name));
-  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById('tab'+name.charAt(0).toUpperCase()+name.slice(1)).classList.add('active');
-}
-
-/* ══ ONLINE ══ */
-function setOnline(v) {
-  isOnline = v;
-  const pip = document.getElementById('onPip');
-  const txt = document.getElementById('onTxt');
-  if(pip) pip.className = v ? 'status-pip' : 'status-pip off';
-  if(txt) txt.textContent = v ? 'Trực tuyến' : 'Ngoại tuyến';
-  renderSwGrid();
-}
-
-function updateOnCount() {
-  const n = DEVICES.filter(d=>d.status).length;
-  const el = document.getElementById('onCount');
-  if(el) el.textContent = n;
-}
-
-/* ══ SWITCH GRID ══ */
-function renderSwGrid() {
-  const g = document.getElementById('swGrid');
-  if (!g) return;
-  g.innerHTML = '';
-  DEVICES.forEach(d => {
-    const c = document.createElement('div');
-    c.className = `sw-card${d.status?' on':''}${!isOnline?' offline-card':''}`;
-    c.id = 'swc-'+d.id;
-    c.innerHTML = `
-      <div class="sw-accent"></div>
-      <div class="sw-top">
-        <div class="sw-icon-wrap">${d.icon}</div>
-        <button class="toggle-ed${d.status?' on':''}" id="tog-${d.id}" onclick="toggleDev('${d.id}')">
-          <div class="toggle-track"></div>
-          <div class="toggle-thumb-ed"></div>
-        </button>
-      </div>
-      <div class="sw-name-ed" id="swn-${d.id}"
-        contenteditable="false"
-        onclick="startEdit('${d.id}')"
-        onblur="endEdit('${d.id}')"
-        onkeydown="keyEdit(event,'${d.id}')">${d.name}</div>
-      <div class="sw-footer-ed">
-        <div class="sw-status-ed" id="sws-${d.id}">${d.status?'Đang bật':'Đang tắt'}</div>
-        <button class="sw-al-ed" id="sal-${d.id}"
-          style="color:${d.activeLow?'var(--blue)':'var(--accent)'}"
-          onclick="togAL('${d.id}')">${d.activeLow?'Mức thấp':'Mức cao'}</button>
-      </div>
-    `;
-    g.appendChild(c);
-  });
-  updateOnCount();
-}
-
-function updateCard(devId) {
-  const d   = DEVICES.find(x=>x.id===devId);
-  const c   = document.getElementById('swc-'+devId);
-  const tog = document.getElementById('tog-'+devId);
-  const sts = document.getElementById('sws-'+devId);
-  if(!c||!d) return;
-  c.className = `sw-card${d.status?' on':''}`;
-  tog.className = `toggle-ed${d.status?' on':''}`;
-  sts.textContent = d.status ? 'Đang bật' : 'Đang tắt';
-}
-
-function toggleDev(devId) {
-  const d = DEVICES.find(x=>x.id===devId);
-  if(!d) return;
-  d.status = !d.status;
-  updateCard(devId); updateOnCount();
-  addLog(`[SinricPro]: ${d.name} → ${d.status?'Bật':'Tắt'}`, d.status?'g':'');
-  fbSetSwitch(devId, d.status);
-  toast(`${d.icon} ${d.name} → ${d.status?'Bật':'Tắt'}`);
-}
-
-function killAll() {
-  DEVICES.forEach(d=>{if(d.status){d.status=false;updateCard(d.id);fbSetSwitch(d.id,false);}});
-  updateOnCount();
-  addLog('[Hệ thống]: Đã tắt toàn bộ thiết bị','o');
-  toast('⛔ Đã tắt tất cả');
-}
-
-function togAL(devId) {
-  const d = DEVICES.find(x=>x.id===devId);if(!d)return;
-  d.activeLow = !d.activeLow;
-  const btn = document.getElementById('sal-'+devId);
-  if(btn){btn.textContent=d.activeLow?'Mức thấp':'Mức cao';btn.style.color=d.activeLow?'var(--blue)':'var(--accent)';}
-  genFirmware();
-}
-
-function startEdit(devId) {
-  const el = document.getElementById('swn-'+devId);
-  el.contentEditable='true'; el.focus();
-  const r=document.createRange();r.selectNodeContents(el);
-  window.getSelection().removeAllRanges();
-  window.getSelection().addRange(r);
-}
-function endEdit(devId) {
-  const el = document.getElementById('swn-'+devId);
-  el.contentEditable='false';
-  const d = DEVICES.find(x=>x.id===devId);if(!d)return;
-  const raw = el.textContent.trim();
-  if(raw){d.name=raw;el.textContent=d.name;}
-  renderDevTabs(); genFirmware();
-}
-function keyEdit(e, devId) {
-  if(e.key==='Enter'){e.preventDefault();endEdit(devId);}
-  if(e.key==='Escape'){const d=DEVICES.find(x=>x.id===devId);if(d){document.getElementById('swn-'+devId).textContent=d.name;document.getElementById('swn-'+devId).contentEditable='false';}}
-}
-function editRoomName() {
-  const n = prompt('Tên phòng:', roomName);
-  if(n){ roomName=n; localStorage.setItem('rn',roomName);
-    const el=document.getElementById('roomTitle');
-    if(el){ const span=el.querySelector('.sub'); el.textContent=n; if(span)el.prepend(span); }
-  }
-}
-function editSysName() {
-  const n = prompt('Tên hệ thống:',systemName);
-  if(n){systemName=n;localStorage.setItem('sn',systemName);document.getElementById('sysNameBadge').textContent=n;genFirmware();}
-}
-
-/* ══ SCHEDULE ══ */
-function renderDevTabs() {
-  const el=document.getElementById('devTabs');if(!el)return;
-  el.innerHTML='';
-  DEVICES.forEach(d=>{
-    const cnt=(schedules[d.id]||[]).length;
-    const b=document.createElement('button');
-    b.className=`dtab-ed${d.id===curDev?' active':''}`;
-    b.innerHTML=`${d.icon} ${d.name} <span class="dtab-cnt">${cnt}</span>`;
-    b.onclick=()=>{curDev=d.id;renderDevTabs();renderSchedList();updFormLbl();};
-    el.appendChild(b);
-  });
-  updFormLbl();
-}
-function updFormLbl(){}
-
-function renderSchedList() {
-  const list=schedules[curDev]||[];
-  const el=document.getElementById('schedList');
-  const tlw=document.getElementById('tlWrap');
-  if(!list.length){
-    el.innerHTML='<div class="sched-empty">Chưa có lịch · Thêm ở form bên phải</div>';
-    if(tlw)tlw.style.display='none'; return;
-  }
-  if(tlw)tlw.style.display='block';
-  el.innerHTML='<div style="padding-left:16px">'+list.map(s=>{
-    const dh=DAY_LABELS.slice(1).map((lbl,di)=>
-      `<div class="dchip${s.days.includes(di+1)?' on':''}">${lbl}</div>`).join('');
-    return `<div class="si${s.state?' si-on':' si-off'}${s.active?'':' inactive'}">
-      <div class="si-time">${p2(s.hour)}:${p2(s.min)}</div>
-      <div class="si-body">
-        <div class="si-badge${s.state?' on':' off'}">${s.state?'▶ Bật':'■ Tắt'}</div>
-        <div class="si-days">${dh}</div>
-      </div>
-      <div class="si-ctrl">
-        <button class="mt-ed${s.active?' on':''}" onclick="togSched('${curDev}','${s.id}')">
-          <div class="mt-track"></div><div class="mt-th"></div>
-        </button>
-        <button class="del-btn-ed" onclick="delSched('${curDev}','${s.id}')">✕</button>
-      </div>
-    </div>`;
-  }).join('')+'</div>';
-  renderTl(list);
-}
-
-const p2 = n => String(n).padStart(2,'0');
-
-function renderDayPicker() {
-  const el=document.getElementById('dayPicker');if(!el)return;
-  el.innerHTML='';
-  for(let d=1;d<=7;d++){
-    const b=document.createElement('button');
-    b.className=`d-btn${selDays.has(d)?' sel':''}`;
-    b.textContent=DAY_LABELS[d];
-    b.onclick=()=>{selDays.has(d)?selDays.delete(d):selDays.add(d);renderDayPicker();};
-    el.appendChild(b);
-  }
-}
-function setDays(arr){selDays=new Set(arr);renderDayPicker();}
-function selAct(v){
-  actState=v;
-  document.getElementById('aOn').className=`a-btn${v?' aon':''}`;
-  document.getElementById('aOff').className=`a-btn${!v?' aoff':''}`;
-}
-function addSched(){
-  const h=parseInt(document.getElementById('inpH').value);
-  const m=parseInt(document.getElementById('inpM').value);
-  if(isNaN(h)||isNaN(m)){toast('⚠️ Nhập giờ hợp lệ!');return;}
-  if(!selDays.size){toast('⚠️ Chọn ít nhất 1 ngày!');return;}
-  const s={id:'sc'+Date.now(),hour:h,min:m,state:actState,days:[...selDays],active:true};
-  if(!schedules[curDev])schedules[curDev]=[];
-  schedules[curDev].push(s);schedules[curDev].sort((a,b)=>a.hour*60+a.min-(b.hour*60+b.min));
-  renderSchedList();renderDevTabs();fbSetSched(curDev,s);
-  addLog(`[Hẹn giờ]: ${p2(h)}:${p2(m)} → ${actState?'Bật':'Tắt'}`,'o');
-  toast(`✅ Thêm lịch ${p2(h)}:${p2(m)}`);
-}
-function togSched(devId,sid){
-  const s=(schedules[devId]||[]).find(x=>x.id===sid);if(!s)return;
-  s.active=!s.active;renderSchedList();fbSetSched(devId,s);
-  toast(s.active?'✅ Đã bật lịch':'⏸ Tạm dừng lịch');
-}
-function delSched(devId,sid){
-  schedules[devId]=(schedules[devId]||[]).filter(s=>s.id!==sid);
-  renderSchedList();renderDevTabs();fbDelSched(devId,sid);
-  toast('✕ Đã xóa lịch');
-}
-
-function renderTl(list){
-  const bar=document.getElementById('tlBar');if(!bar)return;
-  bar.querySelectorAll('.tl-seg').forEach(e=>e.remove());
-  const today=new Date().getDay(),tc=today===0?1:today+1;
-  const sorted=list.filter(s=>s.active&&s.days.includes(tc)).sort((a,b)=>a.hour*60+a.min-(b.hour*60+b.min));
-  sorted.forEach((s,i)=>{
-    const st=s.hour*60+s.min,en=sorted[i+1]?sorted[i+1].hour*60+sorted[i+1].min:1440;
-    const w=((en-st)/1440*100).toFixed(2);if(parseFloat(w)<0.5)return;
-    const seg=document.createElement('div');seg.className=`tl-seg${s.state?' on':' off'}`;
-    seg.style.cssText=`left:${(st/1440*100).toFixed(2)}%;width:${w}%`;
-    if(parseFloat(w)>6)seg.textContent=s.state?'ON':'OFF';
-    bar.appendChild(seg);
-  });
-}
-function updTlNow(now){
-  const el=document.getElementById('tlNow');
-  if(el)el.style.left=((now.getHours()*60+now.getMinutes())/1440*100).toFixed(2)+'%';
-}
-function runSchedules(now){
-  const h=now.getHours(),m=now.getMinutes();
-  const day=now.getDay()===0?1:now.getDay()+1;
-  const key=`${day}-${h}-${m}`;
-  DEVICES.forEach(d=>{
-    (schedules[d.id]||[]).forEach(s=>{
-      if(!s.active||!s.days.includes(day)||s.hour!==h||s.min!==m)return;
-      const rk=`${s.id}-${key}`;if(lastRunMap[rk])return;
-      lastRunMap[rk]=true;d.status=s.state;
-      updateCard(d.id);updateOnCount();fbSetSwitch(d.id,s.state);
-      addLog(`[Hẹn giờ]: ${d.name} → ${s.state?'Bật':'Tắt'}`,'o');
-      toast(`⏰ ${d.name} tự động ${s.state?'Bật':'Tắt'}`);
-    });
-  });
-  const cur=`${day}-${h}-${m}`;
-  Object.keys(lastRunMap).forEach(k=>{if(!k.endsWith(cur))delete lastRunMap[k];});
-}
-
-/* ══ LOG ══ */
-function addLog(msg,type){
-  const body=document.getElementById('logBody');if(!body)return;
-  const ts=new Date().toLocaleTimeString();
-  body.querySelector('.log-empty')?.remove();
-  const div=document.createElement('div');div.className='log-item';
-  const cls=type==='g'?'log-g':type==='o'?'log-o':type==='e'?'log-e':'';
-  div.innerHTML=`<span class="log-ts">[${ts}]</span><span class="${cls}">${msg}</span>`;
-  body.insertBefore(div,body.firstChild);
-  if(body.children.length>50)body.removeChild(body.lastChild);
-}
-function clearLog(){document.getElementById('logBody').innerHTML='<div class="log-empty">Đã xóa nhật ký...</div>';}
-
-/* ══ FIRMWARE ══ */
-function genFirmware(){
-  const el=document.getElementById('fwPre');if(!el)return;
-  const fbUrl=document.getElementById('fbUrl')?.value.trim()||'https://YOUR-PROJECT-rtdb.firebaseio.com';
-  const fbKey=document.getElementById('fbKey')?.value.trim()||'YOUR_API_KEY';
-  const rp=DEVICES.map(d=>d.relayPin).join(', ');
-  const bp=DEVICES.map(d=>d.btnPin).join(', ');
-  const ids=DEVICES.map(d=>`"${d.id}"`).join(', ');
-  const als=DEVICES.map(d=>d.activeLow).join(', ');
-  const names=DEVICES.map(d=>d.name).join(', ');
-  el.textContent=`/*
- * Firmware ESP32-C3 · SmartHome Firebase
- * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- * Hệ thống : ${systemName}
- * Thiết bị : ${names}
- * Cloud    : Firebase Realtime Database
- *
- * Tính năng:
- *   ✓ WiFiManager — ESP32 tự phát AP "ESP32-SmartHome-Setup"
- *   ✓ Người dùng mở điện thoại kết nối WiFi đó, nhập WiFi nhà
- *   ✓ Tắt AP ngay sau khi kết nối → tiết kiệm điện (~100mA)
- *   ✓ Firebase URL + Key nhúng sẵn — không cần người dùng nhập
- *   ✓ Tự reconnect WiFi, tự mở AP lại nếu mất mạng lâu
- *   ✓ Hẹn giờ NTP GMT+7 — bật/tắt theo lịch từ Firebase
- *   ✓ Stream realtime — phản hồi < 100ms
- *   ✓ Nút vật lý chống rung 250ms
+        const fullCppCode = `/* 
+ * MA NGUON ESP32-C3 SMART HOME AI - PHIEN BAN HOAN THIEN
+ * Dieukhien 4 Relay, 4 Nut nhan, Heartbeat, Reset WiFi
  */
-
 #include <Arduino.h>
 #include <WiFi.h>
-#include <WiFiManager.h>
+#include <WiFiManager.h> 
 #include <Firebase_ESP_Client.h>
-#include <Preferences.h>
-#include <time.h>
-#include "addons/TokenHelper.h"
+#include <addons/TokenHelper.h>
 
-/* ── Firebase (nhúng cứng) ─────────────────────── */
-#define FB_URL     "${fbUrl}"
-#define FB_KEY     "${fbKey}"
+// --- THONG TIN FIREBASE ---
+#define FIREBASE_PROJECT_ID "gemini-55ab8"
+#define FIREBASE_API_KEY "AIzaSyBSJwS5xFjXAczjBmVx1gvhMCiZFqKHFYU"
 
-/* ── WiFiManager AP ────────────────────────────── */
-#define AP_NAME    "ESP32-SmartHome-Setup"
-#define AP_PASS    "12345678"
-#define AP_TIMEOUT 120
+// --- CAU HINH CHAN GPIO ---
+const int relayPins[] = {1, 2, 3, 4};       // Relay: GPIO 1, 2, 3, 4
+const int buttonPins[] = {5, 6, 7, 10};    // Nut nhan: GPIO 5, 6, 7, 10
+const int statusLed = 8;                   // LED bao hieu: GPIO 8
+const char* deviceIds[] = {"relay1", "relay2", "relay3", "relay4"};
 
-/* ── NTP ───────────────────────────────────────── */
-#define NTP_SRV    "pool.ntp.org"
-#define GMT_OFFSET 25200  // GMT+7
+bool relayStates[] = {false, false, false, false};
+int lastBtnState[] = {HIGH, HIGH, HIGH, HIGH};
+unsigned long lastDebounce[] = {0, 0, 0, 0};
 
-/* ── Phần cứng ─────────────────────────────────── */
-const int RELAY[] = { ${rp} };
-const int BTN[]   = { ${bp} };
-const char* IDS[] = { ${ids} };
-const bool  AL[]  = { ${als} };
-#define DEV_COUNT  ${DEVICES.length}
-#define LED_PIN    8
-#define BTN_RESET  9
-#define DEBOUNCE   250
+FirebaseData fbdo;
+FirebaseAuth auth;
+FirebaseConfig config;
+WiFiManager wm; // FIX: Dua wm ra toan cuc de loop() su dung duoc
 
-FirebaseData   fbdo, fbStream;
-FirebaseAuth   auth;
-FirebaseConfig cfg;
-bool fbOK = false, ntpOK = false;
-
-/* ── LED blink task ────────────────────────────── */
-int blinkMs = 0;
-void ledTask(void* p) {
-  while(true) {
-    if(blinkMs > 0) {
-      digitalWrite(LED_PIN, HIGH); vTaskDelay(blinkMs / portTICK_PERIOD_MS);
-      digitalWrite(LED_PIN, LOW);  vTaskDelay(blinkMs / portTICK_PERIOD_MS);
-    } else vTaskDelay(100 / portTICK_PERIOD_MS);
-  }
+void blinkLed() {
+    digitalWrite(statusLed, HIGH); delay(100); digitalWrite(statusLed, LOW);
 }
 
-/* ── Điều khiển relay ──────────────────────────── */
-void setDev(int i, bool on) {
-  digitalWrite(RELAY[i], AL[i] ? !on : on);
-  Serial.printf("[%s] %s\\n", IDS[i], on ? "BẬT" : "TẮT");
-  if(fbOK)
-    Firebase.RTDB.setBool(&fbdo,
-      "iot-home/switches/" + String(IDS[i]) + "/state", on);
-}
-
-/* ── Tắt AP hoàn toàn ─────────────────────────── */
-void closeAP() {
-  WiFi.softAPdisconnect(true);
-  WiFi.mode(WIFI_STA);
-  Serial.println("AP tắt → STA mode");
-}
-
-/* ── Reconnect WiFi (retry 3 lần) ─────────────── */
-bool connectWiFi() {
-  for(int i = 0; i < 3; i++) {
-    blinkMs = 500;
-    WiFi.mode(WIFI_STA); WiFi.begin();
-    unsigned long t0 = millis();
-    while(WiFi.status() != WL_CONNECTED && millis()-t0 < 20000) delay(300);
-    if(WiFi.status() == WL_CONNECTED) { blinkMs = 0; return true; }
-    delay(5000);
-  }
-  return false;
-}
-
-/* ── Mở AP để đổi WiFi ─────────────────────────── */
-bool openAP() {
-  blinkMs = 200;
-  WiFiManager wm;
-  wm.setDebugOutput(false);
-  wm.setTitle("SmartHome Setup");
-  wm.setDarkMode(true);
-  wm.setConfigPortalTimeout(AP_TIMEOUT);
-  wm.resetSettings();
-  bool ok = wm.startConfigPortal(AP_NAME, AP_PASS);
-  closeAP(); blinkMs = 0;
-  return ok;
-}
-
-/* ── Stream callback ───────────────────────────── */
-void streamCB(FirebaseStream data) {
-  String path = data.dataPath();
-  if(path.indexOf("/switches/") >= 0 &&
-     path.indexOf("/state") >= 0 &&
-     data.dataTypeEnum() == fb_esp_rtdb_data_type_boolean) {
-    bool st = data.boolData();
-    for(int i = 0; i < DEV_COUNT; i++)
-      if(path.indexOf(IDS[i]) >= 0) { setDev(i, st); break; }
-  }
-}
-void streamTO(bool to) { if(to) Serial.println("Stream timeout"); }
-
-/* ── Setup ─────────────────────────────────────── */
 void setup() {
-  Serial.begin(115200);
-  pinMode(LED_PIN, OUTPUT);
-  pinMode(BTN_RESET, INPUT_PULLUP);
-  xTaskCreate(ledTask, "LED", 1024, NULL, 1, NULL);
+    Serial.begin(115200);
+    pinMode(statusLed, OUTPUT);
+    for(int i=0; i<4; i++) {
+        pinMode(relayPins[i], OUTPUT);
+        digitalWrite(relayPins[i], LOW);
+        pinMode(buttonPins[i], INPUT_PULLUP);
+    }
+    
+    // Tu dong ket noi hoac phat AP cau hinh
+    wm.autoConnect("ESP32-C3-Config", "12345678");
+    WiFi.mode(WIFI_STA); 
+    
+    // Dong bo gio NTP
+    configTime(7 * 3600, 0, "pool.ntp.org", "time.nist.gov");
+    struct tm timeinfo;
+    while(!getLocalTime(&timeinfo)) { delay(500); Serial.print("."); }
 
-  for(int i = 0; i < DEV_COUNT; i++) {
-    pinMode(RELAY[i], OUTPUT);
-    pinMode(BTN[i], INPUT_PULLUP);
-    digitalWrite(RELAY[i], AL[i] ? HIGH : LOW); // mặc định TẮT
-  }
-
-  // Giữ BOOT → xóa WiFi đã lưu
-  if(digitalRead(BTN_RESET) == LOW) {
-    WiFiManager wm; wm.resetSettings();
-    delay(500); ESP.restart();
-  }
-
-  // WiFiManager — chỉ hỏi WiFi, Firebase đã có sẵn
-  WiFiManager wm;
-  wm.setDebugOutput(false);
-  wm.setTitle("SmartHome Setup");
-  wm.setDarkMode(true);
-  wm.setConfigPortalTimeout(AP_TIMEOUT);
-  blinkMs = 200;
-
-  bool ok = wm.autoConnect(AP_NAME, AP_PASS);
-  closeAP(); // ★ TẮT AP NGAY — tiết kiệm điện!
-
-  if(!ok) { Serial.println("Offline mode"); return; }
-
-  blinkMs = 0; digitalWrite(LED_PIN, HIGH);
-  Serial.println("WiFi: " + WiFi.SSID() + " | " + WiFi.localIP().toString());
-
-  // NTP
-  configTime(GMT_OFFSET, 0, NTP_SRV);
-  struct tm ti;
-  for(int i = 0; i < 10 && !getLocalTime(&ti); i++) delay(1000);
-  ntpOK = getLocalTime(&ti);
-
-  // Firebase
-  cfg.api_key = FB_KEY; cfg.database_url = FB_URL;
-  if(Firebase.signUp(&cfg, &auth, "", "")) fbOK = true;
-  cfg.token_status_callback = tokenStatusCallback;
-  Firebase.begin(&cfg, &auth);
-  Firebase.reconnectWiFi(true);
-
-  Firebase.RTDB.setString(&fbdo, "iot-home/device/status", "online");
-  Firebase.RTDB.setString(&fbdo, "iot-home/device/ip", WiFi.localIP().toString());
-
-  Firebase.RTDB.beginStream(&fbStream, "iot-home/switches");
-  Firebase.RTDB.setStreamCallback(&fbStream, streamCB, streamTO);
-
-  Serial.println("Sẵn sàng!");
+    config.api_key = FIREBASE_API_KEY;
+    Firebase.signUp(&config, &auth, "", "");
+    Firebase.begin(&config, &auth);
+    Firebase.reconnectWiFi(true);
+    
+    for(int i=0; i<3; i++) { blinkLed(); delay(100); }
+    Serial.println("--- HE THONG SAN SANG ---");
 }
-
-/* ── Loop ──────────────────────────────────────── */
-unsigned long lastWifi = 0;
-bool lastBtnSt[${DEVICES.length}] = {};
-unsigned long lastDB[${DEVICES.length}] = {};
 
 void loop() {
-  // Nút vật lý
-  for(int i = 0; i < DEV_COUNT; i++) {
-    bool cur = digitalRead(BTN[i]);
-    if(cur != lastBtnSt[i] && millis()-lastDB[i] > DEBOUNCE) {
-      if(cur == LOW) {
-        bool nextOn = !(digitalRead(RELAY[i]) == (AL[i] ? LOW : HIGH));
-        setDev(i, nextOn);
-      }
-      lastDB[i] = millis(); lastBtnSt[i] = cur;
-    }
-  }
+    if (Firebase.ready()) {
+        // 1. Heartbeat Online (Moi 15 giay)
+        static unsigned long lastHb = 0;
+        if (millis() - lastHb > 15000) {
+            lastHb = millis();
+            time_t now = time(nullptr);
+            unsigned long long nowMs = (unsigned long long)now * 1000;
+            String path = "artifacts/gemini-55ab8/public/data/system/status";
+            String content = "{\\"fields\\":{\\"last_seen\\":{\\"integerValue\\":\\"" + String(nowMs) + "\\"}}}";
+            Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "", path.c_str(), content.c_str(), "last_seen");
+        }
 
-  // Giám sát WiFi mỗi 30s
-  if(millis()-lastWifi > 30000) {
-    lastWifi = millis();
-    if(WiFi.status() != WL_CONNECTED) {
-      if(!connectWiFi()) {
-        bool reconfigured = openAP();
-        if(reconfigured) ESP.restart();
-      }
+        // 2. Kiem tra Lenh Reset WiFi tu Web
+        static unsigned long lastCmdCheck = 0;
+        if (millis() - lastCmdCheck > 5000) {
+            lastCmdCheck = millis();
+            String cmdPath = "artifacts/gemini-55ab8/public/data/system/commands";
+            if (Firebase.Firestore.getDocument(&fbdo, FIREBASE_PROJECT_ID, "", cmdPath.c_str(), "")) {
+                if (fbdo.payload().indexOf("\\"reset_wifi\\":{\\"booleanValue\\":true}") > 0) {
+                    Serial.println(">>> NHAN LENH RESET WIFI!");
+                    Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "", cmdPath.c_str(), "{\\"fields\\":{\\"reset_wifi\\":{\\"booleanValue\\":false}}}", "reset_wifi");
+                    delay(1000); 
+                    wm.resetSettings(); // Bay gio wm da hop le
+                    ESP.restart();
+                }
+            }
+        }
+
+        // 3. Nut nhan vat ly
+        for(int i=0; i<4; i++) {
+            int reading = digitalRead(buttonPins[i]);
+            if (reading != lastBtnState[i]) lastDebounce[i] = millis();
+            if ((millis() - lastDebounce[i]) > 50) {
+                if (reading == LOW && lastBtnState[i] == HIGH) {
+                    relayStates[i] = !relayStates[i];
+                    digitalWrite(relayPins[i], relayStates[i] ? HIGH : LOW);
+                    String path = "artifacts/gemini-55ab8/public/data/devices/" + String(deviceIds[i]);
+                    String content = "{\\"fields\\":{\\"status\\":{\\"booleanValue\\":" + String(relayStates[i] ? "true" : "false") + "}}}";
+                    Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "", path.c_str(), content.c_str(), "status");
+                    blinkLed();
+                }
+            }
+            lastBtnState[i] = reading;
+        }
+
+        // 4. Lenh tu Web (Moi 2 giay)
+        static unsigned long lastSync = 0;
+        if(millis() - lastSync > 2000) {
+            lastSync = millis();
+            for(int i=0; i<4; i++) {
+                String path = "artifacts/gemini-55ab8/public/data/devices/" + String(deviceIds[i]);
+                if (Firebase.Firestore.getDocument(&fbdo, FIREBASE_PROJECT_ID, "", path.c_str(), "")) {
+                    bool cloudState = fbdo.payload().indexOf("\\"booleanValue\\":true") > 0;
+                    if(cloudState != relayStates[i]) {
+                        relayStates[i] = cloudState;
+                        digitalWrite(relayPins[i], relayStates[i] ? HIGH : LOW);
+                        blinkLed();
+                    }
+                }
+            }
+        }
     }
-  }
 }`;
-}
 
-function copyFw() {
-  navigator.clipboard.writeText(document.getElementById('fwPre').textContent).then(()=>{
-    const b=document.querySelector('.copy-fw');
-    b.textContent='✓ Đã sao chép'; setTimeout(()=>b.textContent='Sao chép',2000);
-    toast('📋 Đã sao chép firmware!');
-  });
-}
-
-/* ══ TOAST ══ */
-function toast(msg){
-  const el=document.createElement('div');el.className='toast';el.textContent=msg;
-  document.getElementById('toasts').appendChild(el);
-  setTimeout(()=>el.remove(),3000);
-}
-
-/* ══ INIT ══ */
-setOnline(false);
-renderSwGrid();
-renderDevTabs();
-renderSchedList();
-renderDayPicker();
-genFirmware();
-addLog('[Hệ thống]: SmartHome khởi động','o');
-</script>
+        document.getElementById('btn-show-code').onclick = () => {
+            document.getElementById('code-display').innerText = fullCppCode;
+            document.getElementById('code-modal').classList.remove('hidden');
+        };
+        document.getElementById('btn-close-code').onclick = () => document.getElementById('code-modal').classList.add('hidden');
+        document.getElementById('btn-copy-code').onclick = () => {
+            const el = document.createElement('textarea');
+            el.value = fullCppCode;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            alert("Đã sao chép mã nguồn!");
+        };
+    </script>
 </body>
 </html>
